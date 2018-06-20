@@ -1,0 +1,46 @@
+{
+  "name": "re-composed",
+  "version": "0.1.0",
+  "description": "Recomposed approach of using redux with TypeScript.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/hmuralt/re-composed.git"
+  },
+  "keywords": [
+    "redux",
+    "react",
+    "typescript"
+  ],
+  "author": "Heinrich Muralt",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hmuralt/re-composed/issues"
+  },
+  "homepage": "https://github.com/hmuralt/re-composed#readme",
+  "scripts": {
+    "clean": "rimraf dist",
+    "tslint": "tslint --project .",
+    "build": "npm run clean && npm run tslint && tsc",
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "react": "^16.0.0-0",
+    "redux": "^4.0.0-0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^22.2.3",
+    "@types/react": "^16.3.13",
+    "@types/shallowequal": "^0.2.2",
+    "jest": "22.1.4",
+    "react": "^16.3.2",
+    "redux": "4.0.0",
+    "rimraf": "^2.6.2",
+    "shallowequal": "^1.0.2",
+    "ts-jest": "^22.4.6",
+    "tslint": "^5.7.0",
+    "tslint-react": "^3.2.0",
+    "typescript": "^2.8.3"
+  }
+}
