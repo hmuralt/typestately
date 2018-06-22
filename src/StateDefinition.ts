@@ -1,6 +1,6 @@
 import { Action as ReduxAction, Reducer } from "redux";
 import { ActionConstructorType } from "./Action";
-import StateAccess from "./StateAccess";
+import SubStore from "./SubStore";
 import DefaultStatePublisher from "./DefaultStatePublisher";
 import NestingStatePublisher from "./NestingStatePublisher";
 import DefaultStateReducer from "./DefaultStateReducer";
@@ -34,7 +34,7 @@ export default class StateDefinition<TState, TActionType = string> {
         return this;
     }
 
-    public buildOnStore(storeId: string): StateAccess<TState, TActionType> {
+    public buildOnStore(storeId: string): SubStore<TState, TActionType> {
         const stateReducer = this.createStateReducer();
         const statePublisher = this.createStatePublisher();
         const dispatch = coreRegistry.getStore(storeId).dispatch;
@@ -42,7 +42,7 @@ export default class StateDefinition<TState, TActionType = string> {
 
         return {
             dispatch,
-            provider: statePublisher.getStateProvider()
+            stateProvider: statePublisher.getStateProvider()
         };
     }
 
