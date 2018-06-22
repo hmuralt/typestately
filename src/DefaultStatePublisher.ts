@@ -2,8 +2,10 @@ import * as shallowequal from "shallowequal";
 import StatePublisher from "./StatePublisher";
 import StateProvider from "./StateProvider";
 
+export type Listener<TState> = (state: TState) => void;
+
 export default class DefaultStatePublisher<TState> implements StatePublisher {
-    protected listeners: Map<number, (state: TState) => void>;
+    protected listeners: Map<number, Listener<TState>>;
 
     constructor(
         protected key: string,
@@ -41,7 +43,7 @@ export default class DefaultStatePublisher<TState> implements StatePublisher {
         return this.state;
     }
 
-    private subscribe(listener: (state: TState) => void) {
+    private subscribe(listener: Listener<TState>) {
         const key = this.listeners.size + 1;
         this.listeners.set(key, listener);
 
