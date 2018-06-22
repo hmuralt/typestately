@@ -1,38 +1,55 @@
 import * as React from "react";
-import { Store as ReduxStore } from "redux";
-import coreRegistry from "../../CoreRegistry";
+import { Store } from "redux";
+import coreRegistry, { Unsubscribe } from "../../CoreRegistry";
 
 export interface Props {
-    store?: ReduxStore<{}>;
+    store?: Store<{}>;
 }
 
 export interface OwnProps {
-    store?: ReduxStore<{}>;
+    store?: Store<{}>;
+}
+
+interface OwnState {
+    store: Store;
 }
 
 export default function withStore(storeId: string) {
     return <TProps extends Props>(Component: React.ComponentType<TProps>) => {
 
-        const StoreContainer: React.StatelessComponent<OwnProps> = (ownProps) => {
-            const StoreContext = React.createContext(coreRegistry.getStore(storeId));
+        return class StateToProps extends React.PureComponent<OwnProps, OwnState> {
+            public unsubscribe: Unsubscribe;
 
-            if (StoreContext === undefined) {
-                return null;
+            constructor(props: OwnProps) {
+                super(props);
+                this.state = {
+                    store: coreRegistry.getStore(storeId)
+                };
             }
 
-            return (
-                ownProps.store ?
-                    (
-                        <Component {...ownProps} store={ownProps.store} />
-                    ) :
-                    (
-                        <StoreContext.Consumer>
-                            {(store) => <Component {...ownProps} store={store} />}
-                        </StoreContext.Consumer>
-                    )
-            );
-        };
+            public componentDidMount() {
+                this.unsubscribe = coreRegistry.subscribe(storeId, (store) => {
+                    this.setState({
+                        store
+                    });
+                });
+            }
 
-        return StoreContainer;
+            public render() {
+                return (
+                    this.props.store ?
+                        (
+                            <Component {...this.props} store={this.props.store} />
+                        ) :
+                        (
+                            <Component {...this.props} store={this.state.store} />
+                        )
+                );
+            }
+
+            public componentWillUnmount() {
+                this.unsubscribe();
+            }
+        };
     };
 }

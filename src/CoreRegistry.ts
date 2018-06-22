@@ -5,6 +5,7 @@ import StateReducer from "./StateReducer";
 import StatePublisher from "./StatePublisher";
 
 export type Listener = (store: Store) => void;
+export type Unsubscribe = () => void;
 
 interface Entry {
     store: Store<{}>;
@@ -52,7 +53,7 @@ class CoreRegistry {
         return entry.store;
     }
 
-    public subscribe(storeId: string, listener: Listener) {
+    public subscribe(storeId: string, listener: Listener): Unsubscribe {
         const entry = this.storeEntries.get(storeId);
 
         if (entry === undefined) {
