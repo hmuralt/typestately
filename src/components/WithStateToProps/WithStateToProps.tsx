@@ -1,5 +1,5 @@
 import * as React from "react";
-import StateProvider, { unsubsribe } from "../../StateProvider";
+import StateProvider, { Unsubscribe } from "../../StateProvider";
 
 export default function withStateToProps<TState, TProps>(
     stateProvider: StateProvider<TState>,
@@ -7,7 +7,7 @@ export default function withStateToProps<TState, TProps>(
 ) {
     return (Component: React.ComponentType<TProps>) => {
         return class StateToProps extends React.PureComponent<{}, TProps> {
-            public unsubscribe: unsubsribe;
+            public unsubscribe: Unsubscribe;
 
             constructor(props: {}) {
                 super(props);

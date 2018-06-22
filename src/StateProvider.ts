@@ -1,8 +1,8 @@
-export type unsubsribe = () => void;
+export type Unsubscribe = () => void;
 
 export default interface StateProvider<TState> {
     getState(): TState;
-    subscribe(listener: (state: TState) => void): unsubsribe;
+    subscribe(listener: (state: TState) => void): Unsubscribe;
 }
 
 // Haven't found better way to support type inference
