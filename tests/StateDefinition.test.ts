@@ -16,11 +16,7 @@ describe("StateDefinition", () => {
         someProp: "withSomeVal"
     };
     type State = typeof testDefaultState;
-    const testNestedState = {
-        reducer: jest.fn() as any,
-        publisher: jest.fn() as any,
-        provider: jest.fn() as any,
-    };
+    const testNestedState = new StateDefinition("nestedStateKey", {});
 
     describe("build", () => {
         describe("without reducer functions", () => {

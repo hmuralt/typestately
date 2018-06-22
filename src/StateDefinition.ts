@@ -9,7 +9,7 @@ import DoNothingStateReducer from "./DoNothingStateReducer";
 
 export default class StateDefinition<TState, TActionType = string> {
     private static stateKey = "state";
-    private nestedState: Array<StateAccess<{}>> = [];
+    private nestedState: Array<StateDefinition<{}>> = [];
     private actionHandlers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
 
     constructor(private key: string, private defaultState: TState, private routeIdentifier?: string) { }
@@ -27,7 +27,7 @@ export default class StateDefinition<TState, TActionType = string> {
         return this;
     }
 
-    public withNestedState<TNestedState>(nestedState: StateAccess<TNestedState>): StateDefinition<TState, TActionType> {
+    public withNestedState<TNestedState>(nestedState: StateDefinition<TNestedState>): StateDefinition<TState, TActionType> {
         this.nestedState.push(nestedState);
 
         return this;
@@ -49,7 +49,7 @@ export default class StateDefinition<TState, TActionType = string> {
             return new DoNothingStateReducer();
         }
 
-        const nestedStateReducers = this.nestedState.map((nestedState) => nestedState.reducer);
+        const nestedStateReducers = this.nestedState.map((nestedState) => nestedState.createStateReducer());
 
         return nestedStateReducers.length > 0 ?
             new NestingStateReducer(
@@ -69,7 +69,7 @@ export default class StateDefinition<TState, TActionType = string> {
     }
 
     private createStatePublisher(): DefaultStatePublisher<TState> | NestingStatePublisher<TState> {
-        const nestedStatePublisher = this.nestedState.map((nestedState) => nestedState.publisher);
+        const nestedStatePublisher = this.nestedState.map((nestedState) => nestedState.createStatePublisher());
 
         return nestedStatePublisher.length > 0 ?
             new NestingStatePublisher(
