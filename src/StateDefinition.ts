@@ -6,6 +6,7 @@ import NestingStatePublisher from "./NestingStatePublisher";
 import DefaultStateReducer from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import DoNothingStateReducer from "./DoNothingStateReducer";
+import coreRegistry from "./CoreRegistry";
 
 export default class StateDefinition<TState, TActionType = string> {
     private static stateKey = "state";
@@ -33,13 +34,14 @@ export default class StateDefinition<TState, TActionType = string> {
         return this;
     }
 
-    public build(): StateAccess<TState> {
+    public buildOnStore(storeId: string): StateAccess<TState, TActionType> {
         const stateReducer = this.createStateReducer();
         const statePublisher = this.createStatePublisher();
+        const dispatch = coreRegistry.getStore(storeId).dispatch;
+        coreRegistry.registerState(storeId, stateReducer, statePublisher);
 
         return {
-            reducer: stateReducer,
-            publisher: statePublisher,
+            dispatch,
             provider: statePublisher.getStateProvider()
         };
     }

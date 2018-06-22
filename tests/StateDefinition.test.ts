@@ -4,11 +4,22 @@ import DefaultStateReducer from "../src/DefaultStateReducer";
 import DefaultStatePublisher from "../src/DefaultStatePublisher";
 import NestingStateReducer from "../src/NestingStateReducer";
 import NestingStatePublisher from "../src/NestingStatePublisher";
+import coreRegistry from "../src/CoreRegistry";
+
+const mockDispatch = jest.fn();
+
+jest.mock("../src/CoreRegistry", () => ({
+    default: {
+        getStore: jest.fn(() => mockDispatch),
+        registerState: jest.fn()
+    }
+}));
 
 // tslint:disable:no-empty no-any
 describe("StateDefinition", () => {
     const testKey = "testKey";
     const testActionType = "testActionType";
+    const testStoreId = "testStoreId";
     const testAction = {
         type: testActionType
     };
@@ -18,17 +29,35 @@ describe("StateDefinition", () => {
     type State = typeof testDefaultState;
     const testNestedState = new StateDefinition("nestedStateKey", {});
 
-    describe("build", () => {
+    beforeEach(() => {
+        (coreRegistry.getStore as any).mockClear();
+        (coreRegistry.registerState as any).mockClear();
+    });
+
+    describe("buildOnStore", () => {
+        it("Gets the correct store", () => {
+             // Arrange
+             const stateDefinition = new StateDefinition(testKey, testDefaultState);
+
+             // Act
+             stateDefinition.buildOnStore(testStoreId);
+
+             // Assert
+             const getStoreCall = (coreRegistry.getStore as any).mock.calls[0];
+             expect(getStoreCall[0]).toBe(testStoreId);
+        });
+
         describe("without reducer functions", () => {
             it("returns DoNothingStateReducer", () => {
                 // Arrange
                 const stateDefinition = new StateDefinition(testKey, testDefaultState);
 
                 // Act
-                const result = stateDefinition.build();
+                stateDefinition.buildOnStore(testStoreId);
 
                 // Assert
-                expect(result.reducer as DoNothingStateReducer).not.toBeNull();
+                const regsiterStateCall = (coreRegistry.registerState as any).mock.calls[0];
+                expect(regsiterStateCall[1] as DoNothingStateReducer).not.toBeNull();
             });
         });
 
@@ -39,10 +68,11 @@ describe("StateDefinition", () => {
                     .withReducerFor<typeof testAction>(testActionType, (state) => state);
 
                 // Act
-                const result = stateDefinition.build();
+                stateDefinition.buildOnStore(testStoreId);
 
                 // Assert
-                expect(result.reducer as DefaultStateReducer<State, string>).not.toBeNull();
+                const regsiterStateCall = (coreRegistry.registerState as any).mock.calls[0];
+                expect(regsiterStateCall[1] as DefaultStateReducer<State, string>).not.toBeNull();
             });
 
             it("returns DefaultStatePublisher", () => {
@@ -51,10 +81,11 @@ describe("StateDefinition", () => {
                     .withReducerFor<typeof testAction>(testActionType, (state) => state);
 
                 // Act
-                const result = stateDefinition.build();
+                stateDefinition.buildOnStore(testStoreId);
 
                 // Assert
-                expect(result.publisher as DefaultStatePublisher<State>).not.toBeNull();
+                const regsiterStateCall = (coreRegistry.registerState as any).mock.calls[0];
+                expect(regsiterStateCall[2] as DefaultStatePublisher<State>).not.toBeNull();
             });
         });
 
@@ -66,10 +97,11 @@ describe("StateDefinition", () => {
                     .withNestedState(testNestedState);
 
                 // Act
-                const result = stateDefinition.build();
+                stateDefinition.buildOnStore(testStoreId);
 
                 // Assert
-                expect(result.reducer as NestingStateReducer<State, string>).not.toBeNull();
+                const regsiterStateCall = (coreRegistry.registerState as any).mock.calls[0];
+                expect(regsiterStateCall[1] as NestingStateReducer<State, string>).not.toBeNull();
             });
 
             it("returns NestingStatePublisher", () => {
@@ -79,10 +111,11 @@ describe("StateDefinition", () => {
                     .withNestedState(testNestedState);
 
                 // Act
-                const result = stateDefinition.build();
+                const result = stateDefinition.buildOnStore(testStoreId);
 
                 // Assert
-                expect(result.publisher as NestingStatePublisher<State>).not.toBeNull();
+                const regsiterStateCall = (coreRegistry.registerState as any).mock.calls[0];
+                expect(regsiterStateCall[2] as NestingStatePublisher<State>).not.toBeNull();
             });
         });
     });

@@ -1,9 +1,7 @@
-import StateReducer from "./StateReducer";
-import StatePublisher from "./StatePublisher";
+import { Dispatch, Action } from "redux";
 import StateProvider from "./StateProvider";
 
-export default interface StateAccess<TState> {
-    reducer: StateReducer;
-    publisher: StatePublisher;
+export default interface StateAccess<TState, TActionType> {
+    dispatch: Dispatch<Action<TActionType>>;
     provider: StateProvider<TState>;
 }

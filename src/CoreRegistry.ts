@@ -1,7 +1,8 @@
 import { Store, ReducersMapObject, combineReducers, Unsubscribe } from "redux";
 import ReducerRegistry from "./ReducerRegistry";
 import PublisherRegistry from "./PublisherRegistry";
-import StateAccess from "./StateAccess";
+import StateReducer from "./StateReducer";
+import StatePublisher from "./StatePublisher";
 
 export type Listener = (store: Store) => void;
 
@@ -41,10 +42,14 @@ class CoreRegistry {
         }
     }
 
-    public getStore(storeId: string): Store<{}> | undefined {
+    public getStore(storeId: string): Store<{}> {
         const entry = this.storeEntries.get(storeId);
 
-        return entry === undefined ? undefined : entry.store;
+        if (entry === undefined) {
+            throw new Error(`Store with id "${storeId}" is not registered.`);
+        }
+
+        return entry.store;
     }
 
     public subscribe(storeId: string, listener: Listener) {
@@ -65,15 +70,15 @@ class CoreRegistry {
         };
     }
 
-    public registerState<TState>(storeId: string, stateAccess: StateAccess<TState>) {
+    public registerState(storeId: string, stateReducer: StateReducer, statePublisher: StatePublisher) {
         const entry = this.storeEntries.get(storeId);
 
         if (entry === undefined) {
             throw new Error(`Store with id "${storeId}" is not registered.`);
         }
 
-        entry.reducerRegistry.registerReducer(stateAccess.reducer);
-        entry.publisherRegistry.registerPublisher(stateAccess.publisher);
+        entry.reducerRegistry.registerReducer(stateReducer);
+        entry.publisherRegistry.registerPublisher(statePublisher);
     }
 
     private registerStoreWith<TState>(storeId: string, store: Store<TState>, initialReducers: ReducersMapObject, listeners: Map<number, Listener>) {
