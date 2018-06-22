@@ -53,16 +53,60 @@ describe("CoreRegistry", () => {
         });
     });
 
-    describe("removeStore", () => {
+    describe("replaceStore", () => {
+        let mockStoreNew: Store<{}>;
+
+        beforeEach(() => {
+            mockStoreNew = {
+                dispatch: jest.fn(),
+                getState: jest.fn(),
+                subscribe: mockSubscribe,
+                replaceReducer: jest.fn()
+            };
+        });
+
         it("calls the unsubscribe", () => {
             // Arrange
             const storeId = coreRegistry.registerStore(mockStore, {});
 
             // Act
-            coreRegistry.removeStore(storeId);
+            coreRegistry.replaceStore(storeId, mockStoreNew, {});
 
             // Assert
             expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
+        });
+
+        it("calls the subscribed listeners", () => {
+            // Arrange
+            const storeId = coreRegistry.registerStore(mockStore, {});
+            const mockListener1 = jest.fn();
+            const mockListener2 = jest.fn();
+            coreRegistry.subscribe(storeId, mockListener1);
+            coreRegistry.subscribe(storeId, mockListener2);
+
+            // Act
+            coreRegistry.replaceStore(storeId, mockStoreNew, {});
+
+            // Assert
+            expect(mockListener1).toHaveBeenCalledWith(mockStoreNew);
+            expect(mockListener2).toHaveBeenCalledWith(mockStoreNew);
+        });
+
+        it("calls the subscribed listeners after second replacement", () => {
+            // Arrange
+            const storeId = coreRegistry.registerStore(mockStore, {});
+            const mockListener1 = jest.fn();
+            const mockListener2 = jest.fn();
+            coreRegistry.subscribe(storeId, mockListener1);
+            coreRegistry.subscribe(storeId, mockListener2);
+            coreRegistry.replaceStore(storeId, mockStore, {});
+
+            // Act
+            coreRegistry.replaceStore(storeId, mockStoreNew, {});
+
+            // Assert
+            expect(mockListener1).toHaveBeenCalledWith(mockStoreNew);
+            expect(mockListener2).toHaveBeenCalledWith(mockStoreNew);
         });
     });
 
@@ -81,18 +125,6 @@ describe("CoreRegistry", () => {
         it("returns undefined when store never registered", () => {
             // Arrange
             const storeId = "store_1_235263437";
-
-            // Act
-            const store = coreRegistry.getStore(storeId);
-
-            // Assert
-            expect(store).toBeUndefined();
-        });
-
-        it("returns undefined when store has been removed", () => {
-            // Arrange
-            const storeId = coreRegistry.registerStore(mockStore, {});
-            coreRegistry.removeStore(storeId);
 
             // Act
             const store = coreRegistry.getStore(storeId);
