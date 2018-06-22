@@ -1,21 +1,18 @@
 import * as React from "react";
-import { Dispatch } from "redux";
 import StateProvider, { unsubsribe } from "../../StateProvider";
-import WithStore, { Props as WithStoreProps } from "../WithStore/WithStore";
 
 export default function withStateToProps<TState, TProps>(
     stateProvider: StateProvider<TState>,
-    stateToProps: (state: TState, dispatch: Dispatch) => TProps,
-    store: string
+    stateToProps: (state: TState) => TProps
 ) {
     return (Component: React.ComponentType<TProps>) => {
-        class StateToProps extends React.PureComponent<WithStoreProps, TProps> {
-            private unsubscribe: unsubsribe;
+        return class StateToProps extends React.PureComponent<{}, TProps> {
+            public unsubscribe: unsubsribe;
 
-            constructor(props: WithStoreProps) {
+            constructor(props: {}) {
                 super(props);
                 this.onStateChanged = this.onStateChanged.bind(this);
-                this.state = stateToProps(stateProvider.getState(), this.getDispatch());
+                this.state = stateToProps(stateProvider.getState());
             }
 
             public componentDidMount() {
@@ -33,19 +30,9 @@ export default function withStateToProps<TState, TProps>(
                 this.unsubscribe();
             }
 
-            private onStateChanged(state: TState) {
-                this.setState(stateToProps(state, this.getDispatch()));
+            public onStateChanged(state: TState) {
+                this.setState(stateToProps(state));
             }
-
-            private getDispatch(): Dispatch {
-                return this.props.store ? this.props.store.dispatch : this.doNothingDispatch;
-            }
-
-            // tslint:disable-next-line:no-empty no-any
-            private doNothingDispatch(action: any) {
-            }
-        }
-
-        return WithStore(store)(StateToProps);
+        };
     };
 }
