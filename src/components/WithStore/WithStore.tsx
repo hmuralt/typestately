@@ -3,11 +3,11 @@ import { Store } from "redux";
 import coreRegistry, { Unsubscribe } from "../../CoreRegistry";
 
 export interface Props {
-    store?: Store<{}>;
+    store?: Store;
 }
 
 export interface OwnProps {
-    store?: Store<{}>;
+    store?: Store;
 }
 
 interface OwnState {
