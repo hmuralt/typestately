@@ -8,7 +8,7 @@ export type Listener = (store: Store) => void;
 export type Unsubscribe = () => void;
 
 interface Entry {
-    store: Store<{}>;
+    store: Store;
     listeners: Map<number, Listener>;
     storeUnsubscribe: Unsubscribe;
     reducerRegistry: ReducerRegistry;
@@ -43,7 +43,7 @@ class CoreRegistry {
         }
     }
 
-    public getStore(storeId: string): Store<{}> {
+    public getStore(storeId: string): Store {
         const entry = this.storeEntries.get(storeId);
 
         if (entry === undefined) {
