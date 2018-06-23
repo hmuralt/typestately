@@ -1,6 +1,5 @@
 import { Store } from "redux";
 import coreRegistry from "../src/CoreRegistry";
-import StateAccess from "../src/StateAccess";
 import ReducerRegistry from "../src/ReducerRegistry";
 import PublisherRegistry from "../src/PublisherRegistry";
 import StateReducer from "../src/StateReducer";
@@ -12,7 +11,7 @@ jest.mock("../src/PublisherRegistry");
 
 // tslint:disable:no-any
 describe("CoreRegistry", () => {
-    let mockStore: Store<{}>;
+    let mockStore: Store;
     let mockSubscribe: jest.Mock;
     let mockUnsubscribe: jest.Mock;
 
@@ -56,7 +55,7 @@ describe("CoreRegistry", () => {
     });
 
     describe("replaceStore", () => {
-        let mockStoreNew: Store<{}>;
+        let mockStoreNew: Store;
 
         beforeEach(() => {
             mockStoreNew = {
