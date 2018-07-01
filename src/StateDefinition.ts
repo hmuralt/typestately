@@ -1,4 +1,4 @@
-import { Action as ReduxAction, Reducer } from "redux";
+import { Action as ReduxAction, Reducer, Dispatch, Action } from "redux";
 import { ActionConstructorType } from "./Action";
 import StoreProxy from "./StoreProxy";
 import DefaultStatePublisher from "./DefaultStatePublisher";
@@ -7,13 +7,25 @@ import DefaultStateReducer from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import DoNothingStateReducer from "./DoNothingStateReducer";
 import coreRegistry from "./CoreRegistry";
+import StateReducer from "./StateReducer";
+import StatePublisher from "./StatePublisher";
 
-export default class StateDefinition<TState, TActionType = string> {
+// tslint:disable-next-line:no-any
+interface BuildedState<TState = {}, TActionType = any> {
+    key: string;
+    stateReducer: StateReducer;
+    statePublisher: DefaultStatePublisher<TState>;
+    storeProxy: StoreProxy<TState, TActionType>;
+}
+
+// tslint:disable-next-line:no-any
+export default class StateDefinition<TState = {}, TActionType = any> {
     private static stateKey = "state";
-    private nestedState: Array<StateDefinition<{}>> = [];
+    private nestedStates: StateDefinition[] = [];
     private actionHandlers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
+    private buildCount = 0;
 
-    constructor(private key: string, private defaultState: TState, private routeIdentifier?: string) { }
+    constructor(private key: string, private defaultState: TState) { }
 
     public withReducerFor<TAction extends ReduxAction>(actionType: ActionConstructorType<TAction, TActionType> | TActionType, handler: (state: TState, action: TAction) => TState)
         : StateDefinition<TState, TActionType> {
@@ -29,29 +41,50 @@ export default class StateDefinition<TState, TActionType = string> {
     }
 
     public withNestedState<TNestedState>(nestedState: StateDefinition<TNestedState>): StateDefinition<TState, TActionType> {
-        this.nestedState.push(nestedState);
+        this.nestedStates.push(nestedState);
 
         return this;
     }
 
     public buildOnStore(storeId: string): StoreProxy<TState, TActionType> {
-        const stateReducer = this.createStateReducer();
-        const statePublisher = this.createStatePublisher();
-        const dispatch = coreRegistry.getStore(storeId).dispatch;
-        coreRegistry.registerState(storeId, stateReducer, statePublisher);
+        const buildedState = this.build(coreRegistry.getStore(storeId).dispatch);
+
+        coreRegistry.registerState(storeId, buildedState.stateReducer, buildedState.statePublisher);
+
+        return buildedState.storeProxy;
+    }
+
+    private build(dispatch: Dispatch<Action<TActionType>>): BuildedState<TState, TActionType> {
+        const instanceId = `${this.key}_${this.buildCount}`;
+        const buildedNestedStates = this.nestedStates.map((nestedState) => nestedState.build(dispatch));
+        const stateReducer = this.createStateReducer(buildedNestedStates.map((buildedNestedState) => buildedNestedState.stateReducer), instanceId);
+        const statePublisher = this.createStatePublisher(buildedNestedStates.map((buildedNestedState) => buildedNestedState.statePublisher));
+        const nestedStoreProxies = buildedNestedStates.reduce((map, buildedNestedState) => {
+            map.set(buildedNestedState.key, buildedNestedState.storeProxy);
+            return map;
+        }, new Map<string, StoreProxy>());
+
+        const storeProxy = {
+            instanceId,
+            dispatch,
+            stateProvider: statePublisher.getStateProvider(),
+            nestedStoreProxies
+        };
+
+        ++this.buildCount;
 
         return {
-            dispatch,
-            stateProvider: statePublisher.getStateProvider()
+            key: this.key,
+            stateReducer,
+            statePublisher,
+            storeProxy
         };
     }
 
-    private createStateReducer(): DoNothingStateReducer | DefaultStateReducer<TState, TActionType> | NestingStateReducer<TState, TActionType> {
+    private createStateReducer(nestedStateReducers: StateReducer[], instanceId: string): DoNothingStateReducer | DefaultStateReducer<TState, TActionType> | NestingStateReducer<TState, TActionType> {
         if (this.actionHandlers.size === 0) {
             return new DoNothingStateReducer();
         }
-
-        const nestedStateReducers = this.nestedState.map((nestedState) => nestedState.createStateReducer());
 
         return nestedStateReducers.length > 0 ?
             new NestingStateReducer(
@@ -60,18 +93,18 @@ export default class StateDefinition<TState, TActionType = string> {
                 this.actionHandlers,
                 StateDefinition.stateKey,
                 nestedStateReducers,
-                this.routeIdentifier
+                instanceId
             )
             :
             new DefaultStateReducer(
                 this.key,
                 this.defaultState,
-                this.actionHandlers
+                this.actionHandlers,
+                instanceId
             );
     }
 
-    private createStatePublisher(): DefaultStatePublisher<TState> | NestingStatePublisher<TState> {
-        const nestedStatePublisher = this.nestedState.map((nestedState) => nestedState.createStatePublisher());
+    private createStatePublisher(nestedStatePublisher: StatePublisher[]): DefaultStatePublisher<TState> | NestingStatePublisher<TState> {
 
         return nestedStatePublisher.length > 0 ?
             new NestingStatePublisher(
