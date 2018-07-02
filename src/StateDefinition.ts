@@ -1,4 +1,4 @@
-import { Action as ReduxAction, Reducer, Dispatch, Action } from "redux";
+import { Action as ReduxAction, Reducer, Dispatch } from "redux";
 import { ActionConstructorType } from "./Action";
 import StoreProxy from "./StoreProxy";
 import DefaultStatePublisher from "./DefaultStatePublisher";
@@ -54,7 +54,7 @@ export default class StateDefinition<TState = {}, TActionType = any> {
         return buildedState.storeProxy;
     }
 
-    private build(dispatch: Dispatch<Action<TActionType>>): BuildedState<TState, TActionType> {
+    private build(dispatch: Dispatch<ReduxAction<TActionType>>): BuildedState<TState, TActionType> {
         const instanceId = `${this.key}_${this.buildCount}`;
         const buildedNestedStates = this.nestedStates.map((nestedState) => nestedState.build(dispatch));
         const stateReducer = this.createStateReducer(buildedNestedStates.map((buildedNestedState) => buildedNestedState.stateReducer), instanceId);
