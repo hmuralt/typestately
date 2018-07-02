@@ -54,6 +54,10 @@ export default class StateDefinition<TState = {}, TActionType = any> {
         return buildedState.storeProxy;
     }
 
+    public getStoreProxy(storeProxies: Map<string, StoreProxy>): StoreProxy<TState, TActionType> {
+        return storeProxies.get(this.key) as StoreProxy<TState, TActionType>;
+    }
+
     private build(dispatch: Dispatch<ReduxAction<TActionType>>): BuildedState<TState, TActionType> {
         const instanceId = `${this.key}_${this.buildCount}`;
         const buildedNestedStates = this.nestedStates.map((nestedState) => nestedState.build(dispatch));
