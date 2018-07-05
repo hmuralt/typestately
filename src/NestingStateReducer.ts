@@ -6,12 +6,12 @@ export default class NestingStateReducer<TState, TActionType> extends DefaultSta
     constructor(
         key: string,
         defaultState: TState,
-        actionHandlers: Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>,
+        reducers: Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>,
+        instanceId: string,
         private stateKey: string,
         private nestedStateReducers: StateReducer[],
-        routeIdentifier?: string
     ) {
-        super(key, defaultState, actionHandlers, routeIdentifier);
+        super(key, defaultState, reducers, instanceId);
     }
 
     public extend(reducersMapObject: ReducersMapObject): ReducersMapObject {
@@ -21,7 +21,7 @@ export default class NestingStateReducer<TState, TActionType> extends DefaultSta
             reducers = nestedReducer.extend(reducers);
         }
 
-        reducers[this.stateKey] = this.reduceState.bind(this);
+        reducers[this.stateKey] = this.reduce.bind(this);
 
         return Object.assign(reducersMapObject, { [this.key]: combineReducers(reducers) });
     }

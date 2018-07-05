@@ -22,20 +22,20 @@ interface BuildedState<TState = {}, TActionType = any> {
 export default class StateDefinition<TState = {}, TActionType = any> {
     private static stateKey = "state";
     private nestedStates: StateDefinition[] = [];
-    private actionHandlers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
+    private reducers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
     private buildCount = 0;
 
     constructor(private key: string, private defaultState: TState) { }
 
-    public withReducerFor<TAction extends ReduxAction>(actionType: ActionConstructorType<TAction, TActionType> | TActionType, handler: (state: TState, action: TAction) => TState)
+    public withReducerFor<TAction extends ReduxAction>(actionType: ActionConstructorType<TAction, TActionType> | TActionType, reducer: (state: TState, action: TAction) => TState)
         : StateDefinition<TState, TActionType> {
 
         if ((actionType as ActionConstructorType<TAction, TActionType>).type) {
-            this.actionHandlers.set((actionType as ActionConstructorType<TAction, TActionType>).type, handler);
+            this.reducers.set((actionType as ActionConstructorType<TAction, TActionType>).type, reducer);
             return this;
         }
 
-        this.actionHandlers.set(actionType as TActionType, handler);
+        this.reducers.set(actionType as TActionType, reducer);
 
         return this;
     }
@@ -86,7 +86,7 @@ export default class StateDefinition<TState = {}, TActionType = any> {
     }
 
     private createStateReducer(nestedStateReducers: StateReducer[], instanceId: string): DoNothingStateReducer | DefaultStateReducer<TState, TActionType> | NestingStateReducer<TState, TActionType> {
-        if (this.actionHandlers.size === 0) {
+        if (this.reducers.size === 0) {
             return new DoNothingStateReducer();
         }
 
@@ -94,16 +94,16 @@ export default class StateDefinition<TState = {}, TActionType = any> {
             new NestingStateReducer(
                 this.key,
                 this.defaultState,
-                this.actionHandlers,
+                this.reducers,
+                instanceId,
                 StateDefinition.stateKey,
-                nestedStateReducers,
-                instanceId
+                nestedStateReducers
             )
             :
             new DefaultStateReducer(
                 this.key,
                 this.defaultState,
-                this.actionHandlers,
+                this.reducers,
                 instanceId
             );
     }

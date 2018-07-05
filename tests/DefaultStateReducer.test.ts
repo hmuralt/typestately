@@ -4,6 +4,7 @@ import withRoute from "../src/WithRoute";
 
 describe("DefaultStateReducer", () => {
     const testKey = "theKey";
+    const testInstanceId = "testInstanceId";
     const testDefaultState = { someProp: "someVal" };
     const testState = { someProp: "someOtherVal" };
     type State = typeof testDefaultState;
@@ -13,11 +14,11 @@ describe("DefaultStateReducer", () => {
     const testAction1 = { type: testActionType1 };
     const testAction2 = { type: testActionType2 };
     const testAction3 = { type: testActionType3 };
-    const mockActionHandler1 = jest.fn();
-    const mockActionHandler2 = jest.fn();
-    const testActionHandlers = new Map<string, Reducer<State, ReduxAction<string>>>();
-    testActionHandlers.set(testActionType1, mockActionHandler1);
-    testActionHandlers.set(testActionType2, mockActionHandler2);
+    const mockReducer1 = jest.fn();
+    const mockReducer2 = jest.fn();
+    const testReducers = new Map<string, Reducer<State, ReduxAction<string>>>();
+    testReducers.set(testActionType1, mockReducer1);
+    testReducers.set(testActionType2, mockReducer2);
     let stateReducer: DefaultStateReducer<State, string>;
 
     describe("without route", () => {
@@ -25,7 +26,8 @@ describe("DefaultStateReducer", () => {
             stateReducer = new DefaultStateReducer(
                 testKey,
                 testDefaultState,
-                testActionHandlers
+                testReducers,
+                testInstanceId
             );
         });
 
@@ -76,21 +78,20 @@ describe("DefaultStateReducer", () => {
                 extendedReducersMapObject[testKey](testState, testAction2);
 
                 // Assert
-                expect(mockActionHandler2).toHaveBeenCalledWith(testState, testAction2);
+                expect(mockReducer2).toHaveBeenCalledWith(testState, testAction2);
             });
         });
     });
 
     describe("with route", () => {
-        const testRouteIdentifier = "DefaultStatePublisherTestRoute";
-        const wrongRouteIdentifier = "WrongDefaultStatePublisherTestRoute";
+        const wrongInstanceId = "WrongDefaultStatePublisherInstanceId";
 
         beforeEach(() => {
             stateReducer = new DefaultStateReducer(
                 testKey,
                 testDefaultState,
-                testActionHandlers,
-                testRouteIdentifier
+                testReducers,
+                testInstanceId
             );
         });
 
@@ -101,7 +102,7 @@ describe("DefaultStateReducer", () => {
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](undefined, withRoute(testRouteIdentifier, testAction3));
+                const newState = extendedReducersMapObject[testKey](undefined, withRoute(testInstanceId, testAction3));
 
                 // Assert
                 expect(newState).toBe(testDefaultState);
@@ -113,7 +114,7 @@ describe("DefaultStateReducer", () => {
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](testState, withRoute(testRouteIdentifier, testAction3));
+                const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction3));
 
                 // Assert
                 expect(newState).toBe(testState);
@@ -125,7 +126,7 @@ describe("DefaultStateReducer", () => {
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](testState, withRoute(wrongRouteIdentifier, testAction1));
+                const newState = extendedReducersMapObject[testKey](testState, withRoute(wrongInstanceId, testAction1));
 
                 // Assert
                 expect(newState).toBe(testState);
@@ -137,10 +138,10 @@ describe("DefaultStateReducer", () => {
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                extendedReducersMapObject[testKey](testState, withRoute(wrongRouteIdentifier, testAction1));
+                extendedReducersMapObject[testKey](testState, withRoute(wrongInstanceId, testAction1));
 
                 // Assert
-                expect(mockActionHandler1).not.toBeCalled();
+                expect(mockReducer1).not.toBeCalled();
             });
 
             it("calls correct action handler", () => {
@@ -149,10 +150,10 @@ describe("DefaultStateReducer", () => {
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                extendedReducersMapObject[testKey](testState, withRoute(testRouteIdentifier, testAction2));
+                extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction2));
 
                 // Assert
-                expect(mockActionHandler2).toHaveBeenCalledWith(testState, testAction2);
+                expect(mockReducer2).toHaveBeenCalledWith(testState, testAction2);
             });
         });
     });
