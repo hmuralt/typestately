@@ -39,7 +39,7 @@ export default function withStore(storeId: string) {
                 return (
                     this.props.store ?
                         (
-                            <Component {...this.props} store={this.props.store} />
+                            <Component {...this.props} />
                         ) :
                         (
                             <Component {...this.props} store={this.state.store} />
