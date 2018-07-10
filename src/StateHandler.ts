@@ -23,7 +23,7 @@ export default abstract class StateHandler<TState = {}, TActionType = any> {
 
     constructor(
         private key: string,
-        private state: TState,
+        private defaultState: TState,
         private stateKey = "state") {
         this.instanceId = `${this.key}_${StateHandler.instanceCount++}_${new Date().getTime()}`;
         this.reducers = this.getReducers();
@@ -36,6 +36,10 @@ export default abstract class StateHandler<TState = {}, TActionType = any> {
 
     public onDispatch(callback: Dispatch) {
         this.dispatchCallback = callback;
+
+        for (const nestedStateHandler of this.nestedStateHandlers) {
+            nestedStateHandler.onDispatch(callback);
+        }
     }
 
     protected dispatch<TAction extends ReduxAction>(action: TAction) {
@@ -68,21 +72,21 @@ export default abstract class StateHandler<TState = {}, TActionType = any> {
         }
 
         if (this.nestedStateHandlers.length === 0) {
-            return new DefaultStateReducer(this.key, this.state, this.reducers, this.instanceId);
+            return new DefaultStateReducer(this.key, this.defaultState, this.reducers, this.instanceId);
         }
 
         const nestedStateReducers = this.nestedStateHandlers.map((nestedStateHandler) => nestedStateHandler.stateReducer);
 
-        return new NestingStateReducer(this.key, this.state, this.reducers, this.instanceId, this.stateKey, nestedStateReducers);
+        return new NestingStateReducer(this.key, this.defaultState, this.reducers, this.instanceId, this.stateKey, nestedStateReducers);
     }
 
     private createStatePublisher(): DefaultStatePublisher<TState> {
         if (this.nestedStateHandlers.length === 0) {
-            return new DefaultStatePublisher(this.key, this.state);
+            return new DefaultStatePublisher(this.key, this.defaultState);
         }
 
         const nestedStatePublishers = this.nestedStateHandlers.map((nestedStateHandler) => nestedStateHandler.statePublisher);
 
-        return new NestingStatePublisher(this.key, this.state, this.stateKey, nestedStatePublishers);
+        return new NestingStatePublisher(this.key, this.defaultState, this.stateKey, nestedStatePublishers);
     }
 }

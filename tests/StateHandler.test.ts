@@ -1,3 +1,4 @@
+import { Dispatch } from "redux";
 import StateHandler from "../src/StateHandler";
 import DoNothingStateReducer from "../src/DoNothingStateReducer";
 import DefaultStateReducer from "../src/DefaultStateReducer";
@@ -37,9 +38,14 @@ class TestStateHandler extends StateHandler {
 }
 
 class NestedTestStateHandler extends StateHandler {
+    public setDispatchCallback: Dispatch;
 
     constructor() {
         super(testKey, testState);
+    }
+
+    public onDispatch(callback: Dispatch) {
+        this.setDispatchCallback = callback;
     }
 
     protected getReducers() {
@@ -128,8 +134,22 @@ describe("StateHandler", () => {
         });
     });
 
-    describe("onDispatch callback", () => {
-        it("is called when action needs to be dispatched", () => {
+    describe("onDispatch", () => {
+        it("sets callback on nested handlers", () => {
+            // Arrange
+            const nestedStateHandler = new NestedTestStateHandler();
+            getNestedStateHandlers = () => [nestedStateHandler];
+            const stateHandler = new TestStateHandler();
+            const mockDispatchCallback = jest.fn();
+
+            // Act
+            stateHandler.onDispatch(mockDispatchCallback);
+
+            // Assert
+            expect(nestedStateHandler.setDispatchCallback).toBe(mockDispatchCallback);
+        });
+
+        it("callback is called when action needs to be dispatched", () => {
             // Arrange
             const stateHandler = new TestStateHandler();
             const mockDispatchCallback = jest.fn();
@@ -142,7 +162,7 @@ describe("StateHandler", () => {
             expect(mockDispatchCallback).toHaveBeenCalledWith(testAction);
         });
 
-        it("is called with route action when action needs to be dispatched to own state instance", () => {
+        it("callback is called with route action when action needs to be dispatched to own state instance", () => {
             // Arrange
             const stateHandler = new TestStateHandler();
             const mockDispatchCallback = jest.fn();
