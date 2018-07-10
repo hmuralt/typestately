@@ -28,7 +28,7 @@ export default class DefaultStateReducer<TState, TActionType> implements StateRe
             return state;
         }
 
-        return reducer(state, action);
+        return reducer(state, actionToHandle);
     }
 
     private isRouteAction(action: ReduxAction): action is RouteAction {

@@ -21,6 +21,11 @@ describe("DefaultStateReducer", () => {
     testReducers.set(testActionType2, mockReducer2);
     let stateReducer: DefaultStateReducer<State, string>;
 
+    beforeEach(() => {
+        mockReducer1.mockClear();
+        mockReducer2.mockClear();
+    });
+
     describe("without route", () => {
         beforeEach(() => {
             stateReducer = new DefaultStateReducer(
@@ -148,9 +153,10 @@ describe("DefaultStateReducer", () => {
                 // Arrange
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+                const routeAction = withRoute(testInstanceId, testAction2);
 
                 // Act
-                extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction2));
+                extendedReducersMapObject[testKey](testState, routeAction);
 
                 // Assert
                 expect(mockReducer2).toHaveBeenCalledWith(testState, testAction2);
