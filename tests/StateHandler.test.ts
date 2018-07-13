@@ -1,4 +1,4 @@
-import { Dispatch } from "redux";
+import { Dispatch, Reducer } from "redux";
 import StateHandler from "../src/StateHandler";
 import DoNothingStateReducer from "../src/DoNothingStateReducer";
 import DefaultStateReducer from "../src/DefaultStateReducer";
@@ -12,12 +12,19 @@ const testState = {};
 const testAction = {
     type: "TEST_ACTION"
 };
-let getReducers = () => new Map();
-let getNestedStateHandlers = () => [];
 
 class TestStateHandler extends StateHandler {
-    constructor() {
+    // tslint:disable-next-line:no-any
+    constructor(reducers = new Map<any, Reducer>(), nestedStateHandlers: StateHandler[] = []) {
         super(testKey, testState);
+
+        for (const reducer of reducers) {
+            this.addReducer(reducer[0], reducer[1]);
+        }
+
+        for (const nestedStateHandler of nestedStateHandlers) {
+            this.addNestedStateHandler(nestedStateHandler);
+        }
     }
 
     public dispatchAction() {
@@ -25,15 +32,7 @@ class TestStateHandler extends StateHandler {
     }
 
     public dispatchActionToThisInstance() {
-        this.dispatchToThisInstance(testAction);
-    }
-
-    protected getReducers() {
-        return getReducers();
-    }
-
-    protected getNestedStateHandlers() {
-        return getNestedStateHandlers();
+        this.dispatch(testAction, this.instanceId);
     }
 }
 
@@ -72,8 +71,7 @@ describe("StateHandler", () => {
 
         it("is DefaultStateReducer when there are reducers and no nested states", () => {
             // Arrange
-            getReducers = () => new Map([["test", (state, action) => state]]);
-            const stateHandler = new TestStateHandler();
+            const stateHandler = new TestStateHandler(new Map([["test", (state, action) => state]]));
 
             // Act
             const stateReducer = stateHandler.stateReducer;
@@ -84,9 +82,7 @@ describe("StateHandler", () => {
 
         it("is NestingStateReducer when there are reducers and nested states", () => {
             // Arrange
-            getReducers = () => new Map([["test", (state, action) => state]]);
-            getNestedStateHandlers = () => [new NestedTestStateHandler()];
-            const stateHandler = new TestStateHandler();
+            const stateHandler = new TestStateHandler(new Map([["test", (state, action) => state]]), [new NestedTestStateHandler()]);
 
             // Act
             const stateReducer = stateHandler.stateReducer;
@@ -110,8 +106,7 @@ describe("StateHandler", () => {
 
         it("is NestingStatePublisher when there are nested states", () => {
             // Arrange
-            getNestedStateHandlers = () => [new NestedTestStateHandler()];
-            const stateHandler = new TestStateHandler();
+            const stateHandler = new TestStateHandler(new Map(), [new NestedTestStateHandler()]);
 
             // Act
             const statePublisher = stateHandler.statePublisher;
@@ -138,8 +133,7 @@ describe("StateHandler", () => {
         it("sets callback on nested handlers", () => {
             // Arrange
             const nestedStateHandler = new NestedTestStateHandler();
-            getNestedStateHandlers = () => [nestedStateHandler];
-            const stateHandler = new TestStateHandler();
+            const stateHandler = new TestStateHandler(new Map(), [nestedStateHandler]);
             const mockDispatchCallback = jest.fn();
 
             // Act

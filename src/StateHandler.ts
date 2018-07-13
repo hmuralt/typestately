@@ -10,28 +10,107 @@ import DefaultStateReducer from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import withRoute from "./WithRoute";
 
-// tslint:disable-next-line:no-any
-export default abstract class StateHandler<TState = {}, TActionType = any> {
+// For the declaration file
+interface StateHandlerStatic<TState = {}> {
+    stateReducer: StateReducer;
+    statePublisher: StatePublisher;
+    stateProvider: StateProvider<TState>;
+    onDispatch(callback: Dispatch): void;
+}
+
+// tslint:disable:no-any
+const stateHandlerReducersMap = new Map<new (...args: any[]) => StateHandler, Map<any, Reducer>>();
+const stateHandlerNestedStateHandlersMap = new Map<new (...args: any[]) => StateHandler, string[]>();
+
+export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(constructor: T): (new (...args: any[]) => StateHandlerStatic) {
+    return class ExtendedStateHandler extends constructor {
+        constructor(...args: any[]) {
+            super(...args);
+            this.setReducers();
+            this.setNestedStateHandlers();
+        }
+
+        private setReducers() {
+            const reducers = stateHandlerReducersMap.get(constructor) || new Map();
+
+            for (const reducer of reducers) {
+                this.addReducer(reducer[0], reducer[1]);
+            }
+        }
+
+        private setNestedStateHandlers() {
+            const nestedStateHandlers = stateHandlerNestedStateHandlersMap.get(constructor) || [];
+
+            for (const nestedStateHandler of nestedStateHandlers) {
+                this.addNestedStateHandler(this[nestedStateHandler]);
+            }
+        }
+    };
+}
+
+export function Reducer<TActionType, TState extends {}>(actionType: TActionType) {
+    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<Reducer<TState, ReduxAction<TActionType>>>) => {
+        if (descriptor.value === undefined) {
+            return;
+        }
+
+        const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
+        const reducers = stateHandlerReducersMap.get(stateHandlerConstructor) || new Map<any, Reducer>();
+        reducers.set(actionType, descriptor.value.bind(target));
+        stateHandlerReducersMap.set(stateHandlerConstructor, reducers);
+    };
+}
+
+export function Nested(target: object, propertyKey: string | symbol) {
+    const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
+    const nestedStateHandlers = stateHandlerNestedStateHandlersMap.get(stateHandlerConstructor) || [];
+    nestedStateHandlers.push(propertyKey.toString());
+    stateHandlerNestedStateHandlersMap.set(stateHandlerConstructor, nestedStateHandlers);
+}
+
+export default class StateHandler<TState = {}, TActionType = any> {
     private static instanceCount = 0;
-    public readonly stateReducer: StateReducer;
-    public readonly statePublisher: StatePublisher;
-    public readonly stateProvider: StateProvider<TState>;
-    private instanceId: string;
+    protected instanceId: string;
+    private reducers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
+    private nestedStateHandlers: StateHandler[] = [];
+    private reducer: StateReducer;
+    private publisher: DefaultStatePublisher<TState>;
+    private provider: StateProvider<TState>;
     private dispatchCallback: Dispatch;
-    private reducers: Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>;
-    private nestedStateHandlers: StateHandler[];
 
     constructor(
         private key: string,
         private defaultState: TState,
         private stateKey = "state") {
         this.instanceId = `${this.key}_${StateHandler.instanceCount++}_${new Date().getTime()}`;
-        this.reducers = this.getReducers();
-        this.nestedStateHandlers = this.getNestedStateHandlers();
-        this.stateReducer = this.createStateReducer();
-        const statePublisher = this.createStatePublisher();
-        this.statePublisher = statePublisher;
-        this.stateProvider = statePublisher.getStateProvider();
+    }
+
+    public get stateReducer(): StateReducer {
+        if (this.reducer === undefined) {
+            this.reducer = this.createStateReducer();
+        }
+
+        return this.reducer;
+    }
+
+    public get statePublisher(): StatePublisher {
+        if (this.publisher === undefined) {
+            this.publisher = this.createStatePublisher();
+        }
+
+        return this.publisher;
+    }
+
+    public get stateProvider(): StateProvider<TState> {
+        if (this.publisher === undefined) {
+            this.publisher = this.createStatePublisher();
+        }
+
+        if (this.provider === undefined) {
+            this.provider = this.publisher.getStateProvider();
+        }
+
+        return this.provider;
     }
 
     public onDispatch(callback: Dispatch) {
@@ -42,28 +121,20 @@ export default abstract class StateHandler<TState = {}, TActionType = any> {
         }
     }
 
-    protected dispatch<TAction extends ReduxAction>(action: TAction) {
+    protected dispatch<TAction extends ReduxAction<TActionType>>(action: TAction, instanceId?: string) {
         if (this.dispatchCallback === undefined) {
             return;
         }
 
-        this.dispatchCallback(action);
+        instanceId === undefined ? this.dispatchCallback(action) : this.dispatchCallback(withRoute(instanceId, action));
     }
 
-    protected dispatchToThisInstance<TAction extends ReduxAction>(action: TAction) {
-        if (this.dispatchCallback === undefined) {
-            return;
-        }
-
-        this.dispatchCallback(withRoute(this.instanceId, action));
+    protected addReducer(actionType: TActionType, reducer: Reducer<TState, ReduxAction<TActionType>>) {
+        this.reducers.set(actionType, reducer);
     }
 
-    protected getReducers(): Map<TActionType, Reducer<TState, ReduxAction<TActionType>>> {
-        return new Map();
-    }
-
-    protected getNestedStateHandlers(): StateHandler[] {
-        return [];
+    protected addNestedStateHandler(nestedStateHandler: StateHandler) {
+        this.nestedStateHandlers.push(nestedStateHandler);
     }
 
     private createStateReducer() {
