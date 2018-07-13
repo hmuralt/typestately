@@ -1,13 +1,20 @@
 import * as React from "react";
 import StateProvider, { Unsubscribe } from "../../StateProvider";
 
+// For the declaration file
+interface StateToPropsStatic {
+    componentDidMount(): void;
+    render(): void;
+    componentWillUnmount(): void;
+}
+
 export default function withStateToProps<TState, TProps>(
     stateProvider: StateProvider<TState>,
     stateToProps: (state: TState) => TProps
-) {
+): (Component: React.ComponentType<TProps>) => (new (props: {}) => StateToPropsStatic) {
     return (Component: React.ComponentType<TProps>) => {
         return class StateToProps extends React.PureComponent<{}, TProps> {
-            public unsubscribe: Unsubscribe;
+            private unsubscribe: Unsubscribe;
 
             constructor(props: {}) {
                 super(props);
@@ -30,7 +37,7 @@ export default function withStateToProps<TState, TProps>(
                 this.unsubscribe();
             }
 
-            public onStateChanged(state: TState) {
+            private onStateChanged(state: TState) {
                 this.setState(stateToProps(state));
             }
         };
