@@ -44,8 +44,8 @@ export function DecoratedStateHandler<TState, TActionType, T extends { new(...ar
     };
 }
 
-export function Reducer<TActionType>(actionType: TActionType) {
-    return (target: object, propertyKey: string) => {
+export function Reducer<TState, TActionType>(actionType: TActionType) {
+    return (target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<Reducer<TState, ReduxAction<TActionType>>>) => {
         const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
         const reducerProperties = stateHandlerReducerProperties.get(stateHandlerConstructor) || new Map<any, string>();
         reducerProperties.set(actionType, propertyKey);
