@@ -10,19 +10,13 @@ import DefaultStateReducer from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import withRoute from "./WithRoute";
 
-// For the declaration file
-interface StateHandlerStatic<TState = {}> {
-    stateReducer: StateReducer;
-    statePublisher: StatePublisher;
-    stateProvider: StateProvider<TState>;
-    onDispatch(callback: Dispatch): void;
-}
-
 // tslint:disable:no-any
-const stateHandlerReducersMap = new Map<new (...args: any[]) => StateHandler, Map<any, Reducer>>();
-const stateHandlerNestedStateHandlersMap = new Map<new (...args: any[]) => StateHandler, string[]>();
+const stateHandlerReducerProperties = new Map<new (...args: any[]) => StateHandler, Map<any, string>>();
+const stateHandlerNestedStateHandlerProperties = new Map<new (...args: any[]) => StateHandler, string[]>();
 
-export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(constructor: T): (new (...args: any[]) => StateHandlerStatic) {
+export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(
+    constructor: T
+): T {
     return class ExtendedStateHandler extends constructor {
         constructor(...args: any[]) {
             super(...args);
@@ -31,41 +25,39 @@ export function DecoratedStateHandler<TState, TActionType, T extends { new(...ar
         }
 
         private setReducers() {
-            const reducers = stateHandlerReducersMap.get(constructor) || new Map();
+            const reducerProperties = stateHandlerReducerProperties.get(constructor) || new Map();
 
-            for (const reducer of reducers) {
-                this.addReducer(reducer[0], reducer[1]);
+            for (const reducerProperty of reducerProperties) {
+                const reducer = this[reducerProperty[1]] as Reducer;
+                this.addReducer(reducerProperty[0], reducer.bind(this));
             }
         }
 
         private setNestedStateHandlers() {
-            const nestedStateHandlers = stateHandlerNestedStateHandlersMap.get(constructor) || [];
+            const nestedStateHandlerProperties = stateHandlerNestedStateHandlerProperties.get(constructor) || [];
 
-            for (const nestedStateHandler of nestedStateHandlers) {
-                this.addNestedStateHandler(this[nestedStateHandler]);
+            for (const nestedStateHandlerProperty of nestedStateHandlerProperties) {
+                const nestedStateHandler = this[nestedStateHandlerProperty];
+                this.addNestedStateHandler(nestedStateHandler);
             }
         }
     };
 }
 
-export function Reducer<TActionType, TState extends {}>(actionType: TActionType) {
-    return (target: object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<Reducer<TState, ReduxAction<TActionType>>>) => {
-        if (descriptor.value === undefined) {
-            return;
-        }
-
+export function Reducer<TActionType>(actionType: TActionType) {
+    return (target: object, propertyKey: string) => {
         const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
-        const reducers = stateHandlerReducersMap.get(stateHandlerConstructor) || new Map<any, Reducer>();
-        reducers.set(actionType, descriptor.value.bind(target));
-        stateHandlerReducersMap.set(stateHandlerConstructor, reducers);
+        const reducerProperties = stateHandlerReducerProperties.get(stateHandlerConstructor) || new Map<any, string>();
+        reducerProperties.set(actionType, propertyKey);
+        stateHandlerReducerProperties.set(stateHandlerConstructor, reducerProperties);
     };
 }
 
-export function Nested(target: object, propertyKey: string | symbol) {
+export function Nested(target: object, propertyKey: string) {
     const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
-    const nestedStateHandlers = stateHandlerNestedStateHandlersMap.get(stateHandlerConstructor) || [];
-    nestedStateHandlers.push(propertyKey.toString());
-    stateHandlerNestedStateHandlersMap.set(stateHandlerConstructor, nestedStateHandlers);
+    const nestedStateHandlers = stateHandlerNestedStateHandlerProperties.get(stateHandlerConstructor) || [];
+    nestedStateHandlers.push(propertyKey);
+    stateHandlerNestedStateHandlerProperties.set(stateHandlerConstructor, nestedStateHandlers);
 }
 
 export default class StateHandler<TState = {}, TActionType = any> {
