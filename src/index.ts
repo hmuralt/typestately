@@ -4,10 +4,5 @@ export * from "./StateHandlerUtils";
 export { default as StateProvider, Listener as StateListener, Unsubscribe as StateUnsubscribe } from "./StateProvider";
 export { default as StatePublisher } from "./StatePublisher";
 export { default as StateReducer } from "./StateReducer";
-import * as WithStateToProps from "./components/WithStateToProps/WithStateToProps";
-import * as WithStoreWithStore from "./components/WithStore/WithStore";
-
-export const components = {
-    WithStateToProps: WithStateToProps,
-    WithStore: WithStoreWithStore
-};
+export { default as WithStateToProps } from "./components/WithStateToProps/WithStateToProps";
+export { default as WithStore } from "./components/WithStore/WithStore";
