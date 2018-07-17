@@ -204,3 +204,5 @@ export default withStateToProps<State, Props>(
     }
 )(Counter);
 ```
+
+The example can be found here: https://github.com/hmuralt/typestately-example
