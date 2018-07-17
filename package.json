@@ -1,6 +1,6 @@
 {
   "name": "re-composed",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Recomposed approach of using redux with TypeScript in a react app",
   "main": "index.js",
   "repository": {
