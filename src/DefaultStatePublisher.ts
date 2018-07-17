@@ -1,8 +1,6 @@
 import * as shallowequal from "shallowequal";
 import StatePublisher from "./StatePublisher";
-import StateProvider from "./StateProvider";
-
-export type Listener<TState> = (state: TState) => void;
+import StateProvider, { Unsubscribe, Listener } from "./StateProvider";
 
 export default class DefaultStatePublisher<TState> implements StatePublisher {
     protected listeners: Map<number, Listener<TState>>;
@@ -43,7 +41,7 @@ export default class DefaultStatePublisher<TState> implements StatePublisher {
         return this.state;
     }
 
-    private subscribe(listener: Listener<TState>) {
+    private subscribe(listener: Listener<TState>): Unsubscribe {
         const key = this.listeners.size + 1;
         this.listeners.set(key, listener);
 
