@@ -1,11 +1,11 @@
 {
-  "name": "re-composed",
+  "name": "typestately",
   "version": "1.0.1",
   "description": "Recomposed approach of using redux with TypeScript in a react app",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/hmuralt/re-composed.git"
+    "url": "git+ssh://git@github.com/hmuralt/typestately.git"
   },
   "keywords": [
     "redux",
@@ -15,9 +15,9 @@
   "author": "Heinrich Muralt",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hmuralt/re-composed/issues"
+    "url": "https://github.com/hmuralt/typestately/issues"
   },
-  "homepage": "https://github.com/hmuralt/re-composed#readme",
+  "homepage": "https://github.com/hmuralt/typestately#readme",
   "scripts": {
     "clean": "rimraf dist",
     "tslint": "tslint --project .",
