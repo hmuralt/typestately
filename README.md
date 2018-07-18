@@ -11,6 +11,8 @@ Recomposed approach of using redux with TypeScript in a react app. An idea showi
 
 ## Examples/HowTo
 
+A complete example can be found here: https://github.com/hmuralt/typestately-example
+
 ### Store
 
 This is an example of how stores could be setup, registered and tracked by id.
@@ -200,5 +202,3 @@ export default withStateToProps<State, Props>(
     }
 )(Counter);
 ```
-
-The example can be found here: https://github.com/hmuralt/typestately-example
