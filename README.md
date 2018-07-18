@@ -29,13 +29,9 @@ export default storeIds;
 _StoreSetup.ts_
 ```tsx
 export function setupMainStore() {
-    const initalReducers = {
-        router: routerReducer
-    };
+    const store = createStore((state) => state);
 
-    const store = createStore(combineReducers(initalReducers), applyMiddleware(routerMiddleware(history)));
-
-    return coreRegistry.registerStore(store, initalReducers);
+    return CoreRegistry.registerStore(store, {});
 }
 ```
 
