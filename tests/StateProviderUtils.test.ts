@@ -85,7 +85,6 @@ describe("StateProviderUtils", () => {
                 expect(mockListener).toHaveBeenCalledWith([state1, newState2]);
             });
 
-
             it("returns the unsubscribe function", () => {
                 // Arrange
                 const combinedStateProvider = combine(mockStateProvider1, mockStateProvider2);
