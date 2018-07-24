@@ -15,14 +15,14 @@ export default class NestingStateReducer<TState, TActionType> extends DefaultSta
     }
 
     public extend(reducersMapObject: ReducersMapObject): ReducersMapObject {
-        let reducers: ReducersMapObject = {};
+        let subReducersMapObject: ReducersMapObject = {};
 
         for (const nestedReducer of this.nestedStateReducers) {
-            reducers = nestedReducer.extend(reducers);
+            subReducersMapObject = nestedReducer.extend(subReducersMapObject);
         }
 
-        reducers[this.stateKey] = this.reduce.bind(this);
+        subReducersMapObject[this.stateKey] = this.reduce.bind(this);
 
-        return Object.assign(reducersMapObject, { [this.key]: combineReducers(reducers) });
+        return Object.assign(reducersMapObject, { [this.key]: combineReducers(subReducersMapObject) });
     }
 }
