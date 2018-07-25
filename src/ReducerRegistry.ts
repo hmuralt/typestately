@@ -3,16 +3,16 @@ import StateReducer from "./StateReducer";
 
 export default class ReducerRegistry {
     constructor(
-        private listener: (newReducers: ReducersMapObject) => void,
-        private reducers: ReducersMapObject = {}
+        private listener: (newReducersMapObject: ReducersMapObject) => void,
+        private reducersMapObject: ReducersMapObject = {}
     ) { }
 
     public registerReducer(stateReducer: StateReducer) {
-        this.reducers = stateReducer.extend(this.reducers);
-        this.listener(this.reducers);
+        this.reducersMapObject = stateReducer.extend(this.reducersMapObject);
+        this.listener(this.reducersMapObject);
     }
 
     public getReducers(): ReducersMapObject {
-        return this.reducers;
+        return this.reducersMapObject;
     }
 }
