@@ -6,12 +6,18 @@ import StateProvider from "./StateProvider";
 import NestingStatePublisher from "./NestingStatePublisher";
 import DoNothingStateReducer from "./DoNothingStateReducer";
 import DefaultStatePublisher from "./DefaultStatePublisher";
-import DefaultStateReducer from "./DefaultStateReducer";
+import DefaultStateReducer, { ReducerFunction, RoutingOptions } from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import withRoute from "./WithRoute";
 
 // tslint:disable:no-any
-const stateHandlerReducerProperties = new Map<new (...args: any[]) => StateHandler, Map<any, string>>();
+interface ReducerPropertyDescription {
+    actionType: any;
+    propertyKey: string;
+    routingOptions?: RoutingOptions;
+}
+
+const stateHandlerReducerProperties = new Map<new (...args: any[]) => StateHandler, ReducerPropertyDescription[]>();
 const stateHandlerNestedStateHandlerProperties = new Map<new (...args: any[]) => StateHandler, string[]>();
 
 export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(
@@ -25,11 +31,11 @@ export function DecoratedStateHandler<TState, TActionType, T extends { new(...ar
         }
 
         private setReducers() {
-            const reducerProperties = stateHandlerReducerProperties.get(constructor) || new Map();
+            const reducerProperties = stateHandlerReducerProperties.get(constructor) || [];
 
             for (const reducerProperty of reducerProperties) {
-                const reducer = this[reducerProperty[1]] as Reducer;
-                this.addReducer(reducerProperty[0], reducer.bind(this));
+                const reducer = this[reducerProperty.propertyKey] as Reducer;
+                this.addReducer(reducerProperty.actionType, reducer.bind(this), reducerProperty.routingOptions);
             }
         }
 
@@ -44,11 +50,15 @@ export function DecoratedStateHandler<TState, TActionType, T extends { new(...ar
     };
 }
 
-export function Reducer<TState, TActionType>(actionType: TActionType) {
+export function Reducer<TState, TActionType>(actionType: TActionType, routingOptions?: RoutingOptions) {
     return (target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<Reducer<TState, ReduxAction<TActionType>>>) => {
         const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
-        const reducerProperties = stateHandlerReducerProperties.get(stateHandlerConstructor) || new Map<any, string>();
-        reducerProperties.set(actionType, propertyKey);
+        const reducerProperties = stateHandlerReducerProperties.get(stateHandlerConstructor) || [];
+        reducerProperties.push({
+            actionType,
+            propertyKey,
+            routingOptions
+        });
         stateHandlerReducerProperties.set(stateHandlerConstructor, reducerProperties);
     };
 }
@@ -63,7 +73,7 @@ export function Nested(target: object, propertyKey: string) {
 export default class StateHandler<TState = {}, TActionType = any> {
     private static instanceCount = 0;
     protected instanceId: string;
-    private reducers = new Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>();
+    private reducerFunctions = new Map<TActionType, ReducerFunction<TState, TActionType>>();
     private nestedStateHandlers: StateHandler[] = [];
     private reducer: StateReducer;
     private publisher: DefaultStatePublisher<TState>;
@@ -121,8 +131,11 @@ export default class StateHandler<TState = {}, TActionType = any> {
         instanceId === undefined ? this.dispatchCallback(action) : this.dispatchCallback(withRoute(instanceId, action));
     }
 
-    protected addReducer(actionType: TActionType, reducer: Reducer<TState, ReduxAction<TActionType>>) {
-        this.reducers.set(actionType, reducer);
+    protected addReducer(actionType: TActionType, reducer: Reducer<TState, ReduxAction<TActionType>>, routingOptions?: RoutingOptions) {
+        this.reducerFunctions.set(actionType, {
+            reduce: reducer,
+            routingOptions: routingOptions
+        });
     }
 
     protected addNestedStateHandler(nestedStateHandler: StateHandler) {
@@ -130,17 +143,17 @@ export default class StateHandler<TState = {}, TActionType = any> {
     }
 
     private createStateReducer() {
-        if (this.reducers.size === 0) {
+        if (this.reducerFunctions.size === 0) {
             return new DoNothingStateReducer();
         }
 
         if (this.nestedStateHandlers.length === 0) {
-            return new DefaultStateReducer(this.key, this.defaultState, this.reducers, this.instanceId);
+            return new DefaultStateReducer(this.key, this.defaultState, this.reducerFunctions, this.instanceId);
         }
 
         const nestedStateReducers = this.nestedStateHandlers.map((nestedStateHandler) => nestedStateHandler.stateReducer);
 
-        return new NestingStateReducer(this.key, this.defaultState, this.reducers, this.instanceId, this.stateKey, nestedStateReducers);
+        return new NestingStateReducer(this.key, this.defaultState, this.reducerFunctions, this.instanceId, this.stateKey, nestedStateReducers);
     }
 
     private createStatePublisher(): DefaultStatePublisher<TState> {
