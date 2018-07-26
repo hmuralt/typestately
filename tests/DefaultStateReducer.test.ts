@@ -1,5 +1,5 @@
 import { Action as ReduxAction, Reducer } from "redux";
-import DefaultStateReducer from "../src/DefaultStateReducer";
+import DefaultStateReducer, { ReducerFunction, RoutingOptions } from "../src/DefaultStateReducer";
 import withRoute from "../src/WithRoute";
 
 describe("DefaultStateReducer", () => {
@@ -8,160 +8,232 @@ describe("DefaultStateReducer", () => {
     const testDefaultState = { someProp: "someVal" };
     const testState = { someProp: "someOtherVal" };
     type State = typeof testDefaultState;
-    const testActionType1 = "testActionType1";
-    const testActionType2 = "testActionType2";
-    const testActionType3 = "testActionType3";
-    const testAction1 = { type: testActionType1 };
-    const testAction2 = { type: testActionType2 };
-    const testAction3 = { type: testActionType3 };
-    const mockReducer1 = jest.fn();
-    const mockReducer2 = jest.fn();
-    const testReducers = new Map<string, Reducer<State, ReduxAction<string>>>();
-    testReducers.set(testActionType1, mockReducer1);
-    testReducers.set(testActionType2, mockReducer2);
-    let stateReducer: DefaultStateReducer<State, string>;
+    const testActionType = "testActionType";
+    const testAction = { type: testActionType };
+    const testNotFoundAction = { type: "notFound" };
+    const mockReducerState = { someProp: "mockReducerState" };
+    const mockReducer = jest.fn(() => mockReducerState);
+    const createStateReducer = (routingOptions?: RoutingOptions) => {
+        return new DefaultStateReducer(
+            testKey,
+            testDefaultState,
+            new Map<string, ReducerFunction<State, string>>([
+                [
+                    testActionType, { reduce: mockReducer, routingOptions }
+                ]
+            ]),
+            testInstanceId
+        );
+    };
 
     beforeEach(() => {
-        mockReducer1.mockClear();
-        mockReducer2.mockClear();
+        mockReducer.mockClear();
     });
 
-    describe("without route", () => {
-        beforeEach(() => {
-            stateReducer = new DefaultStateReducer(
-                testKey,
-                testDefaultState,
-                testReducers,
-                testInstanceId
-            );
+    describe("extend", () => {
+        it("adds reducer function to reducers map object under passed test key", () => {
+            // Arrange
+            const stateReducer = createStateReducer();
+            const reducersMapObject = {};
+
+            // Act
+            const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+            // Assert
+            expect(extendedReducersMapObject[testKey]).toBeDefined();
         });
+    });
 
-        describe("extend", () => {
-            it("adds reducer function to reducers map object under passed test key", () => {
+    describe("reduceState", () => {
+        describe("without route", () => {
+            it("returns default state if nothing passed and no reducer function found for passed action", () => {
                 // Arrange
-                const reducersMapObject = {};
-
-                // Act
-                const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
-
-                // Assert
-                expect(extendedReducersMapObject[testKey]).toBeDefined();
-            });
-        });
-
-        describe("reduceState", () => {
-            it("returns default state if nothing passed and no action handler for passed action", () => {
-                // Arrange
+                const stateReducer = createStateReducer();
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](undefined, testAction3);
+                const newState = extendedReducersMapObject[testKey](undefined, testNotFoundAction);
 
                 // Assert
                 expect(newState).toBe(testDefaultState);
             });
 
-            it("returns state if no action handler for passed action", () => {
+            it("returns state if no reducer function found for passed action", () => {
                 // Arrange
+                const stateReducer = createStateReducer();
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](testState, testAction3);
+                const newState = extendedReducersMapObject[testKey](testState, testNotFoundAction);
 
                 // Assert
                 expect(newState).toBe(testState);
             });
 
-            it("calls correct action handler", () => {
+            it("returns reduced state of called reducer function found for passed action", () => {
                 // Arrange
+                const stateReducer = createStateReducer();
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                extendedReducersMapObject[testKey](testState, testAction2);
+                const newState = extendedReducersMapObject[testKey](testState, testAction);
 
                 // Assert
-                expect(mockReducer2).toHaveBeenCalledWith(testState, testAction2);
+                expect(newState).toBe(mockReducerState);
+            });
+
+            describe("with isRoutedOnly enabled", () => {
+                it("returns state and doesn't call reducer function", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isRoutedOnly: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, testAction);
+
+                    // Assert
+                    expect(newState).toBe(testState);
+                    expect(mockReducer).not.toHaveBeenCalled();
+                });
             });
         });
-    });
 
-    describe("with route", () => {
-        const wrongInstanceId = "WrongDefaultStatePublisherInstanceId";
+        describe("with route", () => {
+            const otherTestInstanceId = "otherTestInstanceId";
 
-        beforeEach(() => {
-            stateReducer = new DefaultStateReducer(
-                testKey,
-                testDefaultState,
-                testReducers,
-                testInstanceId
-            );
-        });
-
-        describe("reduceState", () => {
-            it("returns default state if nothing passed and no action handler for passed action", () => {
+            it("returns default state if nothing passed and no reducer function found for passed action", () => {
                 // Arrange
+                const stateReducer = createStateReducer();
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](undefined, withRoute(testInstanceId, testAction3));
+                const newState = extendedReducersMapObject[testKey](undefined, withRoute(testInstanceId, testNotFoundAction));
 
                 // Assert
                 expect(newState).toBe(testDefaultState);
             });
 
-            it("returns state if no action handler for passed action", () => {
+            it("returns state if no reducer function found for passed action", () => {
                 // Arrange
+                const stateReducer = createStateReducer();
                 const reducersMapObject = {};
                 const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
                 // Act
-                const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction3));
+                const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testNotFoundAction));
 
                 // Assert
                 expect(newState).toBe(testState);
             });
 
-            it("returns state if route does not match", () => {
-                // Arrange
-                const reducersMapObject = {};
-                const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+            describe("with isForThisInstance enabled", () => {
+                it("returns state if instanceId doesn't match", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForThisInstance: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
-                // Act
-                const newState = extendedReducersMapObject[testKey](testState, withRoute(wrongInstanceId, testAction1));
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(otherTestInstanceId, testAction));
 
-                // Assert
-                expect(newState).toBe(testState);
+                    // Assert
+                    expect(newState).toBe(testState);
+                });
+
+                it("returns reduced state of called reducer function found for passed action if instanceId matches", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForThisInstance: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction));
+
+                    // Assert
+                    expect(newState).toBe(mockReducerState);
+                    expect(mockReducer).toHaveBeenCalledWith(testState, testAction);
+                });
             });
 
-            it("doesn't call action handler if route does not match", () => {
-                // Arrange
-                const reducersMapObject = {};
-                const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+            describe("with isForOtherInstances enabled", () => {
+                it("returns state if instanceId not of another instance", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForOtherInstances: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
-                // Act
-                extendedReducersMapObject[testKey](testState, withRoute(wrongInstanceId, testAction1));
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction));
 
-                // Assert
-                expect(mockReducer1).not.toBeCalled();
+                    // Assert
+                    expect(newState).toBe(testState);
+                });
+
+                it("returns reduced state of called reducer function found for passed action if instanceId of another instance", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForOtherInstances: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(otherTestInstanceId, testAction));
+
+                    // Assert
+                    expect(newState).toBe(mockReducerState);
+                    expect(mockReducer).toHaveBeenCalledWith(testState, testAction);
+                });
             });
 
-            it("calls correct action handler", () => {
-                // Arrange
-                const reducersMapObject = {};
-                const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
-                const routeAction = withRoute(testInstanceId, testAction2);
+            describe("with isForThisInstance AND isForOtherInstances enabled", () => {
+                it("returns reduced state of called reducer function found for passed action if instanceId matches", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForThisInstance: true, isForOtherInstances: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
 
-                // Act
-                extendedReducersMapObject[testKey](testState, routeAction);
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction));
 
-                // Assert
-                expect(mockReducer2).toHaveBeenCalledWith(testState, testAction2);
+                    // Assert
+                    expect(newState).toBe(mockReducerState);
+                    expect(mockReducer).toHaveBeenCalledWith(testState, testAction);
+                });
+
+                it("returns reduced state of called reducer function found for passed action if instanceId of another instance", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForThisInstance: true, isForOtherInstances: true });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(otherTestInstanceId, testAction));
+
+                    // Assert
+                    expect(newState).toBe(mockReducerState);
+                    expect(mockReducer).toHaveBeenCalledWith(testState, testAction);
+                });
+            });
+
+            describe("with isForThisInstance AND isForOtherInstances disabled", () => {
+                it("returns state", () => {
+                    // Arrange
+                    const stateReducer = createStateReducer({ isForThisInstance: false, isForOtherInstances: false });
+                    const reducersMapObject = {};
+                    const extendedReducersMapObject = stateReducer.extend(reducersMapObject);
+
+                    // Act
+                    const newState = extendedReducersMapObject[testKey](testState, withRoute(testInstanceId, testAction));
+
+                    // Assert
+                    expect(newState).toBe(testState);
+                    expect(mockReducer).not.toHaveBeenCalled();
+                });
             });
         });
     });
-
 });

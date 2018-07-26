@@ -1,17 +1,17 @@
-import { Action as ReduxAction, ReducersMapObject, combineReducers, Reducer } from "redux";
+import { ReducersMapObject, combineReducers } from "redux";
 import StateReducer from "./StateReducer";
-import DefaultStateReducer from "./DefaultStateReducer";
+import DefaultStateReducer, { ReducerFunction } from "./DefaultStateReducer";
 
 export default class NestingStateReducer<TState, TActionType> extends DefaultStateReducer<TState, TActionType> {
     constructor(
         key: string,
         defaultState: TState,
-        reducers: Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>,
+        reducerFunctions: Map<TActionType, ReducerFunction<TState, TActionType>>,
         instanceId: string,
         private stateKey: string,
         private nestedStateReducers: StateReducer[],
     ) {
-        super(key, defaultState, reducers, instanceId);
+        super(key, defaultState, reducerFunctions, instanceId);
     }
 
     public extend(reducersMapObject: ReducersMapObject): ReducersMapObject {

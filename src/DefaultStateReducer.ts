@@ -2,11 +2,26 @@ import { Action as ReduxAction, ReducersMapObject, Reducer } from "redux";
 import StateReducer from "./StateReducer";
 import { RouteAction, routeActionType } from "./WithRoute";
 
+export interface RoutingOptions {
+    isRoutedOnly?: boolean;
+    isForThisInstance?: boolean;
+    isForOtherInstances?: boolean;
+}
+
+export interface ReducerFunction<TState, TActionType> {
+    reduce: Reducer<TState, ReduxAction<TActionType>>;
+    routingOptions?: RoutingOptions;
+}
+
+const defaultRoutingOptions: RoutingOptions = {
+    isForThisInstance: true
+};
+
 export default class DefaultStateReducer<TState, TActionType> implements StateReducer {
     constructor(
         protected key: string,
         protected defaultState: TState,
-        protected reducers: Map<TActionType, Reducer<TState, ReduxAction<TActionType>>>,
+        protected reducerFunctions: Map<TActionType, ReducerFunction<TState, TActionType>>,
         protected instanceId: string
     ) {
     }
@@ -16,19 +31,38 @@ export default class DefaultStateReducer<TState, TActionType> implements StateRe
     }
 
     protected reduce(state: TState = this.defaultState, action: ReduxAction): TState {
-        if (this.isRouteAction(action) && this.instanceId !== undefined && action.identifier !== this.instanceId) {
+        if (this.isRouteAction(action)) {
+            return this.handleRoutedAction(state, action);
+        }
+
+        const reducerFunction = this.reducerFunctions.get(action.type);
+
+        if (reducerFunction === undefined || (reducerFunction.routingOptions || defaultRoutingOptions).isRoutedOnly) {
             return state;
         }
 
-        const actionToHandle = this.isRouteAction(action) ? action.action : action;
+        return reducerFunction.reduce(state, action);
+    }
 
-        const reducer = this.reducers.get(actionToHandle.type);
+    private handleRoutedAction(state: TState, routeAction: RouteAction) {
+        const actionToHandle = routeAction.action;
+        const reducerFunction = this.reducerFunctions.get(actionToHandle.type);
 
-        if (reducer === undefined) {
+        if (reducerFunction === undefined) {
             return state;
         }
 
-        return reducer(state, actionToHandle);
+        const routingOptions = reducerFunction.routingOptions || defaultRoutingOptions;
+
+        if (
+            (!routingOptions.isForThisInstance && !routingOptions.isForOtherInstances) ||
+            (routingOptions.isForThisInstance && !routingOptions.isForOtherInstances && routeAction.identifier !== this.instanceId) ||
+            (routingOptions.isForOtherInstances && !routingOptions.isForThisInstance && routeAction.identifier === this.instanceId)
+        ) {
+            return state;
+        }
+
+        return reducerFunction.reduce(state, actionToHandle);
     }
 
     private isRouteAction(action: ReduxAction): action is RouteAction {
