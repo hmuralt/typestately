@@ -1,5 +1,5 @@
 import { Action as ReduxAction, Reducer } from "redux";
-import DefaultStateReducer, { ReducerFunction, RoutingOptions } from "../src/DefaultStateReducer";
+import DefaultStateReducer, { ReducerSetup, RoutingOptions } from "../src/DefaultStateReducer";
 import withRoute from "../src/WithRoute";
 
 describe("DefaultStateReducer", () => {
@@ -17,9 +17,9 @@ describe("DefaultStateReducer", () => {
         return new DefaultStateReducer(
             testKey,
             testDefaultState,
-            new Map<string, ReducerFunction<State, string>>([
+            new Map<string, ReducerSetup<State, string>>([
                 [
-                    testActionType, { reduce: mockReducer, routingOptions }
+                    testActionType, { reducer: mockReducer, routingOptions }
                 ]
             ]),
             testInstanceId
@@ -31,7 +31,7 @@ describe("DefaultStateReducer", () => {
     });
 
     describe("extend", () => {
-        it("adds reducer function to reducers map object under passed test key", () => {
+        it("adds reducer to reducers map object under passed test key", () => {
             // Arrange
             const stateReducer = createStateReducer();
             const reducersMapObject = {};
@@ -46,7 +46,7 @@ describe("DefaultStateReducer", () => {
 
     describe("reduceState", () => {
         describe("without route", () => {
-            it("returns default state if nothing passed and no reducer function found for passed action", () => {
+            it("returns default state if nothing passed and no reducer found for passed action", () => {
                 // Arrange
                 const stateReducer = createStateReducer();
                 const reducersMapObject = {};
@@ -59,7 +59,7 @@ describe("DefaultStateReducer", () => {
                 expect(newState).toBe(testDefaultState);
             });
 
-            it("returns state if no reducer function found for passed action", () => {
+            it("returns state if no reducer found for passed action", () => {
                 // Arrange
                 const stateReducer = createStateReducer();
                 const reducersMapObject = {};
@@ -72,7 +72,7 @@ describe("DefaultStateReducer", () => {
                 expect(newState).toBe(testState);
             });
 
-            it("returns reduced state of called reducer function found for passed action", () => {
+            it("returns reduced state of called reducer found for passed action", () => {
                 // Arrange
                 const stateReducer = createStateReducer();
                 const reducersMapObject = {};
@@ -86,7 +86,7 @@ describe("DefaultStateReducer", () => {
             });
 
             describe("with isRoutedOnly enabled", () => {
-                it("returns state and doesn't call reducer function", () => {
+                it("returns state and doesn't call reducer", () => {
                     // Arrange
                     const stateReducer = createStateReducer({ isRoutedOnly: true });
                     const reducersMapObject = {};
@@ -105,7 +105,7 @@ describe("DefaultStateReducer", () => {
         describe("with route", () => {
             const otherTestInstanceId = "otherTestInstanceId";
 
-            it("returns default state if nothing passed and no reducer function found for passed action", () => {
+            it("returns default state if nothing passed and no reducer found for passed action", () => {
                 // Arrange
                 const stateReducer = createStateReducer();
                 const reducersMapObject = {};
@@ -118,7 +118,7 @@ describe("DefaultStateReducer", () => {
                 expect(newState).toBe(testDefaultState);
             });
 
-            it("returns state if no reducer function found for passed action", () => {
+            it("returns state if no reducer found for passed action", () => {
                 // Arrange
                 const stateReducer = createStateReducer();
                 const reducersMapObject = {};
@@ -145,7 +145,7 @@ describe("DefaultStateReducer", () => {
                     expect(newState).toBe(testState);
                 });
 
-                it("returns reduced state of called reducer function found for passed action if instanceId matches", () => {
+                it("returns reduced state of called reducer found for passed action if instanceId matches", () => {
                     // Arrange
                     const stateReducer = createStateReducer({ isForThisInstance: true });
                     const reducersMapObject = {};
@@ -174,7 +174,7 @@ describe("DefaultStateReducer", () => {
                     expect(newState).toBe(testState);
                 });
 
-                it("returns reduced state of called reducer function found for passed action if instanceId of another instance", () => {
+                it("returns reduced state of called reducer found for passed action if instanceId of another instance", () => {
                     // Arrange
                     const stateReducer = createStateReducer({ isForOtherInstances: true });
                     const reducersMapObject = {};
@@ -190,7 +190,7 @@ describe("DefaultStateReducer", () => {
             });
 
             describe("with isForThisInstance AND isForOtherInstances enabled", () => {
-                it("returns reduced state of called reducer function found for passed action if instanceId matches", () => {
+                it("returns reduced state of called reducer found for passed action if instanceId matches", () => {
                     // Arrange
                     const stateReducer = createStateReducer({ isForThisInstance: true, isForOtherInstances: true });
                     const reducersMapObject = {};
@@ -204,7 +204,7 @@ describe("DefaultStateReducer", () => {
                     expect(mockReducer).toHaveBeenCalledWith(testState, testAction);
                 });
 
-                it("returns reduced state of called reducer function found for passed action if instanceId of another instance", () => {
+                it("returns reduced state of called reducer found for passed action if instanceId of another instance", () => {
                     // Arrange
                     const stateReducer = createStateReducer({ isForThisInstance: true, isForOtherInstances: true });
                     const reducersMapObject = {};

@@ -1,7 +1,7 @@
 import { Action as ReduxAction, Reducer } from "redux";
 import NestingStateReducer from "../src/NestingStateReducer";
 import StateReducer from "../src/StateReducer";
-import { ReducerFunction } from "../src/DefaultStateReducer";
+import { ReducerSetup } from "../src/DefaultStateReducer";
 
 // tslint:disable:no-any
 describe("NestingStateReducer", () => {
@@ -10,7 +10,7 @@ describe("NestingStateReducer", () => {
     const testStateKey = "testStateKey";
     const testDefaultState = { someProp: "someVal" };
     type State = typeof testDefaultState;
-    const testReducers = new Map<string, ReducerFunction<State, string>>();
+    const testReducers = new Map<string, ReducerSetup<State, string>>();
     const mockReducer = jest.fn((state) => state || {});
     const mockNestedStateReducer: StateReducer = {
         extend: (reducersMapObject) => Object.assign(reducersMapObject, { mockReducer })

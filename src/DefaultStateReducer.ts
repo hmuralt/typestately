@@ -8,8 +8,8 @@ export interface RoutingOptions {
     isForOtherInstances?: boolean;
 }
 
-export interface ReducerFunction<TState, TActionType> {
-    reduce: Reducer<TState, ReduxAction<TActionType>>;
+export interface ReducerSetup<TState, TActionType> {
+    reducer: Reducer<TState, ReduxAction<TActionType>>;
     routingOptions?: RoutingOptions;
 }
 
@@ -21,7 +21,7 @@ export default class DefaultStateReducer<TState, TActionType> implements StateRe
     constructor(
         protected key: string,
         protected defaultState: TState,
-        protected reducerFunctions: Map<TActionType, ReducerFunction<TState, TActionType>>,
+        protected reducerSetups: Map<TActionType, ReducerSetup<TState, TActionType>>,
         protected instanceId: string
     ) {
     }
@@ -35,24 +35,24 @@ export default class DefaultStateReducer<TState, TActionType> implements StateRe
             return this.handleRoutedAction(state, action);
         }
 
-        const reducerFunction = this.reducerFunctions.get(action.type);
+        const reducerSetup = this.reducerSetups.get(action.type);
 
-        if (reducerFunction === undefined || (reducerFunction.routingOptions || defaultRoutingOptions).isRoutedOnly) {
+        if (reducerSetup === undefined || (reducerSetup.routingOptions || defaultRoutingOptions).isRoutedOnly) {
             return state;
         }
 
-        return reducerFunction.reduce(state, action);
+        return reducerSetup.reducer(state, action);
     }
 
     private handleRoutedAction(state: TState, routeAction: RouteAction) {
         const actionToHandle = routeAction.action;
-        const reducerFunction = this.reducerFunctions.get(actionToHandle.type);
+        const reducerSetup = this.reducerSetups.get(actionToHandle.type);
 
-        if (reducerFunction === undefined) {
+        if (reducerSetup === undefined) {
             return state;
         }
 
-        const routingOptions = reducerFunction.routingOptions || defaultRoutingOptions;
+        const routingOptions = reducerSetup.routingOptions || defaultRoutingOptions;
 
         if (
             (!routingOptions.isForThisInstance && !routingOptions.isForOtherInstances) ||
@@ -62,7 +62,7 @@ export default class DefaultStateReducer<TState, TActionType> implements StateRe
             return state;
         }
 
-        return reducerFunction.reduce(state, actionToHandle);
+        return reducerSetup.reducer(state, actionToHandle);
     }
 
     private isRouteAction(action: ReduxAction): action is RouteAction {

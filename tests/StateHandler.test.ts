@@ -1,7 +1,7 @@
 import { Dispatch, Reducer } from "redux";
 import StateHandler from "../src/StateHandler";
 import DoNothingStateReducer from "../src/DoNothingStateReducer";
-import DefaultStateReducer, { ReducerFunction } from "../src/DefaultStateReducer";
+import DefaultStateReducer, { ReducerSetup } from "../src/DefaultStateReducer";
 import NestingStateReducer from "../src/NestingStateReducer";
 import DefaultStatePublisher from "../src/DefaultStatePublisher";
 import NestingStatePublisher from "../src/NestingStatePublisher";
@@ -19,11 +19,11 @@ const testAction = {
 
 class TestStateHandler extends StateHandler {
     // tslint:disable-next-line:no-any
-    constructor(reducerFunctions = new Map<any, ReducerFunction<{}, string>>(), nestedStateHandlers: StateHandler[] = []) {
+    constructor(reducerSetups = new Map<any, ReducerSetup<{}, string>>(), nestedStateHandlers: StateHandler[] = []) {
         super(testKey, testState);
 
-        for (const reducer of reducerFunctions) {
-            this.addReducer(reducer[0], reducer[1].reduce, reducer[1].routingOptions);
+        for (const reducer of reducerSetups) {
+            this.addReducer(reducer[0], reducer[1].reducer, reducer[1].routingOptions);
         }
 
         for (const nestedStateHandler of nestedStateHandlers) {
@@ -61,28 +61,28 @@ class NestedTestStateHandler extends StateHandler {
 }
 
 describe("StateHandler", () => {
-    let testReducerFunctions: Map<any, ReducerFunction<{}, string>>;
+    let testReducerSetups: Map<any, ReducerSetup<{}, string>>;
 
     beforeEach(() => {
-        testReducerFunctions = new Map();
+        testReducerSetups = new Map();
         (DefaultStateReducer as any).mockClear();
     });
 
     describe("stateReducer", () => {
-        it("gets reducerFunctions with passed route options", () => {
+        it("gets reducerSetups with passed route options", () => {
             // Arrange
             const routingOptions = { isForOtherInstances: true, isRoutedOnly: true };
-            testReducerFunctions.set("test", { reduce: (state, action) => state, routingOptions });
-            const stateHandler = new TestStateHandler(testReducerFunctions);
+            testReducerSetups.set("test", { reducer: (state, action) => state, routingOptions });
+            const stateHandler = new TestStateHandler(testReducerSetups);
 
             // Act
             const stateReducer = stateHandler.stateReducer;
 
             // Assert
-            const passedReducerFunctions = (DefaultStateReducer as any).mock.calls[0][2];
-            const testReducerFunction = passedReducerFunctions.get("test") as ReducerFunction<{}, string>;
+            const passedReducerSetups = (DefaultStateReducer as any).mock.calls[0][2];
+            const testReducerSetup = passedReducerSetups.get("test") as ReducerSetup<{}, string>;
             expect(stateReducer).toBeInstanceOf(DefaultStateReducer);
-            expect(testReducerFunction.routingOptions).toBe(routingOptions);
+            expect(testReducerSetup.routingOptions).toBe(routingOptions);
         });
 
         it("is DoNothingStateReducer when there are no reducers", () => {
@@ -98,8 +98,8 @@ describe("StateHandler", () => {
 
         it("is DefaultStateReducer when there are reducers and no nested states", () => {
             // Arrange
-            testReducerFunctions.set("test", { reduce: (state, action) => state });
-            const stateHandler = new TestStateHandler(testReducerFunctions);
+            testReducerSetups.set("test", { reducer: (state, action) => state });
+            const stateHandler = new TestStateHandler(testReducerSetups);
 
             // Act
             const stateReducer = stateHandler.stateReducer;
@@ -110,8 +110,8 @@ describe("StateHandler", () => {
 
         it("is NestingStateReducer when there are reducers and nested states", () => {
             // Arrange
-            testReducerFunctions.set("test", { reduce: (state, action) => state });
-            const stateHandler = new TestStateHandler(testReducerFunctions, [new NestedTestStateHandler()]);
+            testReducerSetups.set("test", { reducer: (state, action) => state });
+            const stateHandler = new TestStateHandler(testReducerSetups, [new NestedTestStateHandler()]);
 
             // Act
             const stateReducer = stateHandler.stateReducer;
@@ -135,7 +135,7 @@ describe("StateHandler", () => {
 
         it("is NestingStatePublisher when there are nested states", () => {
             // Arrange
-            const stateHandler = new TestStateHandler(testReducerFunctions, [new NestedTestStateHandler()]);
+            const stateHandler = new TestStateHandler(testReducerSetups, [new NestedTestStateHandler()]);
 
             // Act
             const statePublisher = stateHandler.statePublisher;
@@ -162,7 +162,7 @@ describe("StateHandler", () => {
         it("sets callback on nested handlers", () => {
             // Arrange
             const nestedStateHandler = new NestedTestStateHandler();
-            const stateHandler = new TestStateHandler(testReducerFunctions, [nestedStateHandler]);
+            const stateHandler = new TestStateHandler(testReducerSetups, [nestedStateHandler]);
             const mockDispatchCallback = jest.fn();
 
             // Act

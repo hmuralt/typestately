@@ -6,7 +6,7 @@ import StateProvider from "./StateProvider";
 import NestingStatePublisher from "./NestingStatePublisher";
 import DoNothingStateReducer from "./DoNothingStateReducer";
 import DefaultStatePublisher from "./DefaultStatePublisher";
-import DefaultStateReducer, { ReducerFunction, RoutingOptions } from "./DefaultStateReducer";
+import DefaultStateReducer, { ReducerSetup, RoutingOptions } from "./DefaultStateReducer";
 import NestingStateReducer from "./NestingStateReducer";
 import withRoute from "./WithRoute";
 
@@ -73,7 +73,7 @@ export function Nested(target: object, propertyKey: string) {
 export default class StateHandler<TState = {}, TActionType = any> {
     private static instanceCount = 0;
     protected instanceId: string;
-    private reducerFunctions = new Map<TActionType, ReducerFunction<TState, TActionType>>();
+    private reducerSetups = new Map<TActionType, ReducerSetup<TState, TActionType>>();
     private nestedStateHandlers: StateHandler[] = [];
     private reducer: StateReducer;
     private publisher: DefaultStatePublisher<TState>;
@@ -132,8 +132,8 @@ export default class StateHandler<TState = {}, TActionType = any> {
     }
 
     protected addReducer(actionType: TActionType, reducer: Reducer<TState, ReduxAction<TActionType>>, routingOptions?: RoutingOptions) {
-        this.reducerFunctions.set(actionType, {
-            reduce: reducer,
+        this.reducerSetups.set(actionType, {
+            reducer,
             routingOptions: routingOptions
         });
     }
@@ -143,17 +143,17 @@ export default class StateHandler<TState = {}, TActionType = any> {
     }
 
     private createStateReducer() {
-        if (this.reducerFunctions.size === 0) {
+        if (this.reducerSetups.size === 0) {
             return new DoNothingStateReducer();
         }
 
         if (this.nestedStateHandlers.length === 0) {
-            return new DefaultStateReducer(this.key, this.defaultState, this.reducerFunctions, this.instanceId);
+            return new DefaultStateReducer(this.key, this.defaultState, this.reducerSetups, this.instanceId);
         }
 
         const nestedStateReducers = this.nestedStateHandlers.map((nestedStateHandler) => nestedStateHandler.stateReducer);
 
-        return new NestingStateReducer(this.key, this.defaultState, this.reducerFunctions, this.instanceId, this.stateKey, nestedStateReducers);
+        return new NestingStateReducer(this.key, this.defaultState, this.reducerSetups, this.instanceId, this.stateKey, nestedStateReducers);
     }
 
     private createStatePublisher(): DefaultStatePublisher<TState> {
