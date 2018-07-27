@@ -22,8 +22,8 @@
     "clean": "rimraf dist",
     "tslint": "tslint --project .",
     "build": "npm run clean && npm run tslint && tsc",
-    "tdd": "jest --watch",
-    "test": "jest"
+    "tdd": "jest --env=node --watch",
+    "test": "jest --env=node"
   },
   "peerDependencies": {
     "react": "^16.0.0-0",
