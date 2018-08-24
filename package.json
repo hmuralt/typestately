@@ -1,6 +1,6 @@
 {
   "name": "typestately",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Recomposed approach of using redux with TypeScript in a react app",
   "main": "index.js",
   "repository": {
