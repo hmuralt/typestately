@@ -23,7 +23,7 @@ const stateHandlerNestedStateHandlerProperties = new Map<new (...args: any[]) =>
 export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(
     constructor: T
 ): T {
-    return class ExtendedStateHandler extends constructor {
+    return class extends constructor {
         constructor(...args: any[]) {
             super(...args);
             this.setReducers();
