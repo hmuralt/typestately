@@ -1,5 +1,6 @@
 export { default as coreRegistry, Listener as StoreListener, Unsubscribe as StoreUnsubscribe } from "./CoreRegistry";
-export { default as StateHandler, DecoratedStateHandler, Nested, Reducer } from "./StateHandler";
+export { default as StateHandler } from "./StateHandler";
+export * from "./StateHandlerDecorators";
 export * from "./StateHandlerUtils";
 export { default as StateProvider, Listener as StateListener, Unsubscribe as StateUnsubscribe } from "./StateProvider";
 export * from "./StateProviderUtils";

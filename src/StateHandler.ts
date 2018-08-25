@@ -10,66 +10,7 @@ import DefaultStateReducer, { ReducerSetup, RoutingOptions } from "./DefaultStat
 import NestingStateReducer from "./NestingStateReducer";
 import withRoute from "./WithRoute";
 
-// tslint:disable:no-any
-interface ReducerPropertyDescription {
-    actionType: any;
-    propertyKey: string;
-    routingOptions?: RoutingOptions;
-}
-
-const stateHandlerReducerProperties = new Map<new (...args: any[]) => StateHandler, ReducerPropertyDescription[]>();
-const stateHandlerNestedStateHandlerProperties = new Map<new (...args: any[]) => StateHandler, string[]>();
-
-export function DecoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(
-    constructor: T
-): T {
-    return class extends constructor {
-        constructor(...args: any[]) {
-            super(...args);
-            this.setReducers();
-            this.setNestedStateHandlers();
-        }
-
-        private setReducers() {
-            const reducerProperties = stateHandlerReducerProperties.get(constructor) || [];
-
-            for (const reducerProperty of reducerProperties) {
-                const reducer = this[reducerProperty.propertyKey] as Reducer;
-                this.addReducer(reducerProperty.actionType, reducer.bind(this), reducerProperty.routingOptions);
-            }
-        }
-
-        private setNestedStateHandlers() {
-            const nestedStateHandlerProperties = stateHandlerNestedStateHandlerProperties.get(constructor) || [];
-
-            for (const nestedStateHandlerProperty of nestedStateHandlerProperties) {
-                const nestedStateHandler = this[nestedStateHandlerProperty];
-                this.addNestedStateHandler(nestedStateHandler);
-            }
-        }
-    };
-}
-
-export function Reducer<TState, TActionType>(actionType: TActionType, routingOptions?: RoutingOptions) {
-    return (target: object, propertyKey: string, descriptor: TypedPropertyDescriptor<Reducer<TState, ReduxAction<TActionType>>>) => {
-        const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
-        const reducerProperties = stateHandlerReducerProperties.get(stateHandlerConstructor) || [];
-        reducerProperties.push({
-            actionType,
-            propertyKey,
-            routingOptions
-        });
-        stateHandlerReducerProperties.set(stateHandlerConstructor, reducerProperties);
-    };
-}
-
-export function Nested(target: object, propertyKey: string) {
-    const stateHandlerConstructor = target.constructor as new (...args: any[]) => StateHandler;
-    const nestedStateHandlers = stateHandlerNestedStateHandlerProperties.get(stateHandlerConstructor) || [];
-    nestedStateHandlers.push(propertyKey);
-    stateHandlerNestedStateHandlerProperties.set(stateHandlerConstructor, nestedStateHandlers);
-}
-
+// tslint:disable-next-line:no-any
 export default class StateHandler<TState = {}, TActionType = any> {
     private static instanceCount = 0;
     protected instanceId: string;
