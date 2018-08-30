@@ -1,18 +1,18 @@
 import * as React from "react";
 import StateProvider, { Unsubscribe } from "../../StateProvider";
 
-export default function withStateToProps<TState, TProps>(
+export default function withStateToProps<TState, TProps, TOwnProps = {}>(
     stateProvider: StateProvider<TState>,
-    stateToProps: (state: TState) => TProps
+    stateToProps: (state: TState, ownProps: TOwnProps) => TProps
 ): (Component: React.ComponentType<TProps>) => React.ComponentClass {
     return (Component: React.ComponentType<TProps>) => {
-        return class StateToProps extends React.PureComponent<{}, TProps> {
+        return class StateToProps extends React.PureComponent<TOwnProps, TProps> {
             private unsubscribe: Unsubscribe;
 
-            constructor(props: {}) {
+            constructor(props: TOwnProps) {
                 super(props);
                 this.onStateChanged = this.onStateChanged.bind(this);
-                this.state = stateToProps(stateProvider.getState());
+                this.state = stateToProps(stateProvider.getState(), props);
             }
 
             public componentDidMount() {
@@ -31,7 +31,7 @@ export default function withStateToProps<TState, TProps>(
             }
 
             private onStateChanged(state: TState) {
-                this.setState(stateToProps(state));
+                this.setState(stateToProps(state, this.props));
             }
         };
     };
