@@ -23,7 +23,7 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
             public render() {
                 const innerProps = stateToProps(this.state, this.props);
                 return (
-                    <Component {...innerProps} />
+                    <Component {...innerProps}>{this.props.children}</Component>
                 );
             }
 
