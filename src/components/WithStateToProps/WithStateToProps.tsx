@@ -6,13 +6,13 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
     stateToProps: (state: TState, ownProps: TOwnProps) => TProps
 ): (Component: React.ComponentType<TProps>) => React.ComponentClass {
     return (Component: React.ComponentType<TProps>) => {
-        return class StateToProps extends React.PureComponent<TOwnProps, TProps> {
+        return class StateToProps extends React.PureComponent<TOwnProps, TState> {
             private unsubscribe: Unsubscribe;
 
             constructor(props: TOwnProps) {
                 super(props);
                 this.onStateChanged = this.onStateChanged.bind(this);
-                this.state = stateToProps(stateProvider.getState(), props);
+                this.state = stateProvider.getState();
             }
 
             public componentDidMount() {
@@ -21,8 +21,9 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
             }
 
             public render() {
+                const innerProps = stateToProps(this.state, this.props);
                 return (
-                    <Component {...this.props} {...this.state} />
+                    <Component {...innerProps} />
                 );
             }
 
@@ -31,7 +32,7 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
             }
 
             private onStateChanged(state: TState) {
-                this.setState(stateToProps(state, this.props));
+                this.setState(state);
             }
         };
     };
