@@ -1,10 +1,7 @@
 export { default as coreRegistry, Listener as StoreListener, Unsubscribe as StoreUnsubscribe } from "./CoreRegistry";
 export { default as StateHandler } from "./StateHandler";
 export * from "./StateHandlerDecorators";
-export * from "./StateHandlerUtils";
-export { default as StateProvider, Listener as StateListener, Unsubscribe as StateUnsubscribe } from "./StateProvider";
-export * from "./StateProviderUtils";
-export { default as StatePublisher } from "./StatePublisher";
+export * from "./ReadOnlyStateHandler";
 export { default as StateReducer } from "./StateReducer";
 export { default as withStateToProps } from "./components/WithStateToProps/WithStateToProps";
-export { default as withStore } from "./components/WithStore/WithStore";
+export { default as Combine } from "./Combine";
