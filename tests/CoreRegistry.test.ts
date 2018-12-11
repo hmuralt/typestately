@@ -1,13 +1,9 @@
 import { Store } from "redux";
 import coreRegistry from "../src/CoreRegistry";
 import ReducerRegistry from "../src/ReducerRegistry";
-import PublisherRegistry from "../src/PublisherRegistry";
-import StateReducer from "../src/StateReducer";
-import StatePublisher from "../src/StatePublisher";
-// redux-mock-store not working with TS, so mocking store manually here
+import StateConnector from "../src/StateConnector";
 
 jest.mock("../src/ReducerRegistry");
-jest.mock("../src/PublisherRegistry");
 
 // tslint:disable:no-any
 describe("CoreRegistry", () => {
@@ -28,7 +24,6 @@ describe("CoreRegistry", () => {
         };
 
         (ReducerRegistry as any).mockClear();
-        (PublisherRegistry as any).mockClear();
     });
 
     describe("registerStore", () => {
@@ -109,6 +104,28 @@ describe("CoreRegistry", () => {
             expect(mockListener1).toHaveBeenCalledWith(mockStoreNew);
             expect(mockListener2).toHaveBeenCalledWith(mockStoreNew);
         });
+
+        it("stops propagating state changes", () => {
+            // Arrange
+            const storeId = coreRegistry.registerStore(mockStore, {});
+            const storeSubscribeCallback = mockSubscribe.mock.calls[0][0];
+            const state$SubscribeCallback = jest.fn();
+            const stateConnector: StateConnector = {
+                setState$: (state$) => state$.subscribe(state$SubscribeCallback),
+                setDispatch: jest.fn(),
+                stateReducer: {
+                    extend: jest.fn()
+                }
+            };
+            coreRegistry.registerState(storeId, stateConnector);
+
+            // Act
+            coreRegistry.replaceStore(storeId, mockStoreNew, {});
+            storeSubscribeCallback();
+
+            // Assert
+            expect(state$SubscribeCallback).not.toHaveBeenCalled();
+        });
     });
 
     describe("getStore", () => {
@@ -134,12 +151,18 @@ describe("CoreRegistry", () => {
     });
 
     describe("registerState", () => {
-        let stateReducer: StateReducer;
-        let statePublisher: StatePublisher;
+        let stateConnector: StateConnector;
+        let mockState$SubscribeCallback: jest.Mock;
 
         beforeEach(() => {
-            stateReducer = jest.fn() as any;
-            statePublisher = jest.fn() as any;
+            mockState$SubscribeCallback = jest.fn();
+            stateConnector = {
+                setState$: (state$) => state$.subscribe(mockState$SubscribeCallback),
+                setDispatch: jest.fn(),
+                stateReducer: {
+                    extend: jest.fn()
+                }
+            };
         });
 
         it("throws error in the unexpected situation when trying to register state for inexistent store", () => {
@@ -147,7 +170,31 @@ describe("CoreRegistry", () => {
 
             // Act
             // Assert
-            expect(() => coreRegistry.registerState("store_id", stateReducer, statePublisher)).toThrowError();
+            expect(() => coreRegistry.registerState("store_id", stateConnector)).toThrowError();
+        });
+
+        it("sets the state$ on the connector", () => {
+            // Arrange
+            const storeId = coreRegistry.registerStore(mockStore, {});
+            const storeSubscribeCallback = mockSubscribe.mock.calls[0][0];
+
+            // Act
+            coreRegistry.registerState(storeId, stateConnector);
+            storeSubscribeCallback();
+
+            // Assert
+            expect(mockState$SubscribeCallback).toHaveBeenCalledTimes(1);
+        });
+
+        it("sets the dispatch", () => {
+            // Arrange
+            const storeId = coreRegistry.registerStore(mockStore, {});
+
+            // Act
+            coreRegistry.registerState(storeId, stateConnector);
+
+            // Assert
+            expect(stateConnector.setDispatch).toHaveBeenCalledWith(mockStore.dispatch);
         });
 
         it("registers the reducer using the reducer registry", () => {
@@ -155,25 +202,12 @@ describe("CoreRegistry", () => {
             const storeId = coreRegistry.registerStore(mockStore, {});
 
             // Act
-            coreRegistry.registerState(storeId, stateReducer, statePublisher);
+            coreRegistry.registerState(storeId, stateConnector);
 
             // Assert
             const reducerRegistryMockInstance = (ReducerRegistry as any).mock.instances[0];
             const mockRegisterReducer = reducerRegistryMockInstance.registerReducer;
-            expect(mockRegisterReducer).toHaveBeenCalledWith(stateReducer);
-        });
-
-        it("registers the publisher using the publisher registry", () => {
-            /// Arrange
-            const storeId = coreRegistry.registerStore(mockStore, {});
-
-            // Act
-            coreRegistry.registerState(storeId, stateReducer, statePublisher);
-
-            // Assert
-            const publisherRegistryMockInstance = (PublisherRegistry as any).mock.instances[0];
-            const mockPublisherPublisher = publisherRegistryMockInstance.registerPublisher;
-            expect(mockPublisherPublisher).toHaveBeenCalledWith(statePublisher);
+            expect(mockRegisterReducer).toHaveBeenCalledWith(stateConnector.stateReducer);
         });
     });
 });
