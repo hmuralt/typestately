@@ -1,9 +1,7 @@
 import { Store, ReducersMapObject, combineReducers, Unsubscribe } from "redux";
+import { Subject } from "rxjs";
 import ReducerRegistry from "./ReducerRegistry";
-import PublisherRegistry from "./PublisherRegistry";
-import StateReducer from "./StateReducer";
-import StatePublisher from "./StatePublisher";
-
+import StateConnector from "./StateConnector";
 export type Listener = (store: Store) => void;
 export type Unsubscribe = () => void;
 
@@ -11,8 +9,8 @@ interface Entry {
     store: Store;
     listeners: Map<number, Listener>;
     storeUnsubscribe: Unsubscribe;
+    state$: Subject<{}>;
     reducerRegistry: ReducerRegistry;
-    publisherRegistry: PublisherRegistry;
 }
 
 class CoreRegistry {
@@ -34,6 +32,8 @@ class CoreRegistry {
         }
 
         entry.storeUnsubscribe();
+        entry.state$.complete();
+        entry.state$.unsubscribe();
         this.storeEntries.delete(storeId);
 
         this.registerStoreWith(storeId, store, initialReducers, entry.listeners);
@@ -71,15 +71,16 @@ class CoreRegistry {
         };
     }
 
-    public registerState(storeId: string, stateReducer: StateReducer, statePublisher: StatePublisher) {
+    public registerState(storeId: string, stateConnector: StateConnector) {
         const entry = this.storeEntries.get(storeId);
 
         if (entry === undefined) {
             throw new Error(`Store with id "${storeId}" is not registered.`);
         }
 
-        entry.reducerRegistry.registerReducer(stateReducer);
-        entry.publisherRegistry.registerPublisher(statePublisher);
+        stateConnector.setState$(entry.state$.asObservable());
+        stateConnector.setDispatch(entry.store.dispatch);
+        entry.reducerRegistry.registerReducer(stateConnector.stateReducer);
     }
 
     private registerStoreWith<TState>(storeId: string, store: Store<TState>, initialReducers: ReducersMapObject, listeners: Map<number, Listener>) {
@@ -87,17 +88,22 @@ class CoreRegistry {
             (newReducers) => store.replaceReducer(combineReducers(newReducers)),
             initialReducers
         );
-        const publisherRegistry = new PublisherRegistry();
+
+        const state$ = new Subject<TState>();
         const storeUnsubscribe = store.subscribe(() => {
-            publisherRegistry.publish(store.getState());
+            if (state$.closed) {
+                return;
+            }
+
+            state$.next(store.getState());
         });
 
         this.storeEntries.set(storeId, {
             store,
             listeners,
             storeUnsubscribe,
-            reducerRegistry,
-            publisherRegistry
+            state$,
+            reducerRegistry
         });
     }
 }
