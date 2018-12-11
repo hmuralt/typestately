@@ -4,4 +4,3 @@ export * from "./StateHandlerDecorators";
 export * from "./ReadOnlyStateHandler";
 export { default as StateReducer } from "./StateReducer";
 export { default as withStateToProps } from "./components/WithStateToProps/WithStateToProps";
-export { default as Combine } from "./Combine";
