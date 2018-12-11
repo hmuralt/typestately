@@ -1,19 +1,27 @@
 import * as React from "react";
 import { Observable, Subscription } from "rxjs";
 
+interface State<TState> {
+    content: TState;
+}
+
 export default function withStateToProps<TState, TProps, TOwnProps = {}>(
     defaultState: TState,
     state$: Observable<TState>,
     stateToProps: (state: TState, ownProps: TOwnProps) => TProps
 ): (Component: React.ComponentType<TProps>) => React.ComponentClass<TOwnProps> {
     return (Component: React.ComponentType<TProps>) => {
-        return class StateToProps extends React.PureComponent<TOwnProps, TState> {
+        return class StateToProps extends React.PureComponent<TOwnProps, State<TState>> {
             private subscription: Subscription;
 
             constructor(props: TOwnProps) {
                 super(props);
+
+                this.state = {
+                    content: defaultState
+                };
+
                 this.onStateChanged = this.onStateChanged.bind(this);
-                this.state = defaultState;
             }
 
             public componentDidMount() {
@@ -21,7 +29,7 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
             }
 
             public render() {
-                const innerProps = stateToProps(this.state, this.props);
+                const innerProps = stateToProps(this.state.content, this.props);
                 return (
                     <Component {...innerProps}>{this.props.children}</Component>
                 );
@@ -32,7 +40,9 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
             }
 
             private onStateChanged(state: TState) {
-                this.setState(state);
+                this.setState({
+                    content: state
+                });
             }
         };
     };
