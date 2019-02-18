@@ -8,13 +8,29 @@
         "eofline": false,
         "grouped-imports": false,
         "interface-name": false,
-        "max-line-length": [ true, 240 ],
+        "max-line-length": [true, 240],
         "max-classes-per-file": false,
         "member-ordering": [
             true,
-            "public-before-private",
-            "static-before-instance",
-            "variables-before-functions"
+            {
+                "order": [
+                    "public-static-field",
+                    "protected-static-field",
+                    "private-static-field",
+                    "public-instance-field",
+                    "protected-instance-field",
+                    "private-instance-field",
+                    "public-constructor",
+                    "protected-constructor",
+                    "private-constructor",
+                    "public-static-method",
+                    "protected-static-method",
+                    "private-static-method",
+                    "public-instance-method",
+                    "protected-instance-method",
+                    "private-instance-method"
+                ]
+            }
         ],
         "object-literal-shorthand": false,
         "object-literal-sort-keys": false,
