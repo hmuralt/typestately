@@ -1,4 +1,3 @@
-import { Action as ReduxAction, Reducer } from "redux";
 import DefaultStateReducer, { ReducerSetup, RoutingOptions } from "../src/DefaultStateReducer";
 import withRoute from "../src/WithRoute";
 

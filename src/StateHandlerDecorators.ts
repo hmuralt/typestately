@@ -34,7 +34,7 @@ export function nested(target: object, propertyKey: string) {
     stateHandlerNestedStateHandlerProperties.set(stateHandlerConstructor, nestedStateHandlers);
 }
 
-export function decoratedStateHandler<TState, TActionType, T extends { new(...args: any[]): StateHandler<TState, TActionType> }>(
+export function decoratedStateHandler<TState, TActionType, T extends new(...args: any[]) => StateHandler<TState, TActionType>>(
     constructor: T
 ): T {
     return class extends constructor {

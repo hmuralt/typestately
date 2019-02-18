@@ -6,10 +6,6 @@ export interface Props {
     store?: Store;
 }
 
-export interface OwnProps {
-    store?: Store;
-}
-
 interface OwnState {
     store: Store;
 }
@@ -17,10 +13,10 @@ interface OwnState {
 export default function withStore(storeId: string) {
     return <TProps extends Props>(Component: React.ComponentType<TProps>) => {
 
-        return class StateToProps extends React.PureComponent<OwnProps, OwnState> {
+        return class StateToProps extends React.PureComponent<TProps, OwnState> {
             public unsubscribe: Unsubscribe;
 
-            constructor(props: OwnProps) {
+            constructor(props: TProps) {
                 super(props);
                 this.state = {
                     store: coreRegistry.getStore(storeId)

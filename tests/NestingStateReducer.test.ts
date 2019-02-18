@@ -1,4 +1,3 @@
-import { Action as ReduxAction, Reducer } from "redux";
 import NestingStateReducer from "../src/NestingStateReducer";
 import StateReducer from "../src/StateReducer";
 import { ReducerSetup } from "../src/DefaultStateReducer";

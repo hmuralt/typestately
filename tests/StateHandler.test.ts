@@ -1,10 +1,10 @@
-import { Dispatch, Reducer } from "redux";
+import { Dispatch } from "redux";
 import StateHandler from "../src/StateHandler";
 import DoNothingStateReducer from "../src/DoNothingStateReducer";
 import DefaultStateReducer, { ReducerSetup } from "../src/DefaultStateReducer";
 import NestingStateReducer from "../src/NestingStateReducer";
 import { RouteAction } from "../src/WithRoute";
-import { Observable, Subject } from "rxjs";
+import { Subject } from "rxjs";
 
 // tslint:disable:no-any
 
@@ -62,14 +62,14 @@ describe("StateHandler", () => {
         let testReducerSetups: Map<any, ReducerSetup<{}, string>>;
 
         beforeEach(() => {
-            testReducerSetups = new Map();
+            testReducerSetups = new Map<any, ReducerSetup<{}, string>>();
             (DefaultStateReducer as any).mockClear();
         });
 
         it("gets reducerSetups with passed route options", () => {
             // Arrange
             const routingOptions = { isForOtherInstances: true, isRoutedOnly: true };
-            testReducerSetups.set("test", { reducer: (state, action) => state, routingOptions });
+            testReducerSetups.set("test", { reducer: (state) => state || {}, routingOptions });
             const stateHandler = new TestStateHandler(testReducerSetups);
 
             // Act
@@ -95,7 +95,7 @@ describe("StateHandler", () => {
 
         it("is DefaultStateReducer when there are reducers and no nested states", () => {
             // Arrange
-            testReducerSetups.set("test", { reducer: (state, action) => state });
+            testReducerSetups.set("test", { reducer: (state) => state || {} });
             const stateHandler = new TestStateHandler(testReducerSetups);
 
             // Act
@@ -107,7 +107,7 @@ describe("StateHandler", () => {
 
         it("is NestingStateReducer when there are reducers and nested states", () => {
             // Arrange
-            testReducerSetups.set("test", { reducer: (state, action) => state });
+            testReducerSetups.set("test", { reducer: (state) => state || {} });
             const stateHandler = new TestStateHandler(testReducerSetups, [new NestedTestStateHandler()]);
 
             // Act
