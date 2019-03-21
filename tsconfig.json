@@ -18,10 +18,5 @@
     "downlevelIteration": true,
     "experimentalDecorators": true
   },
-  "exclude": [
-    "node_modules",
-    "tests",
-    "dist",
-    "index.d.ts"
-  ]
+  "exclude": ["node_modules", "tests", "dist", "index.d.ts"]
 }
