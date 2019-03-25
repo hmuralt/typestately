@@ -6,7 +6,7 @@ describe("createDirigiblePublisher", () => {
     it("publishes notification on notification$ stream", (done) => {
       // Arrange
       const testNotification = "notification";
-      const dirigiblePublisher = createDirigiblePublisher<string>();
+      const { object: dirigiblePublisher } = createDirigiblePublisher<string>();
       dirigiblePublisher.notification$.subscribe((notification) => {
         // Assert
         expect(notification).toBe(testNotification);
@@ -21,7 +21,7 @@ describe("createDirigiblePublisher", () => {
       // Arrange
       const testNotification1 = "notification1";
       const testNotification2 = "notification2";
-      const dirigiblePublisher = createDirigiblePublisher<string>();
+      const { object: dirigiblePublisher } = createDirigiblePublisher<string>();
       dirigiblePublisher.hookIn(filter((notification) => notification !== testNotification1));
       dirigiblePublisher.notification$.subscribe((notification) => {
         // Assert
@@ -39,13 +39,13 @@ describe("createDirigiblePublisher", () => {
     it("doesn't publish anything anymore", () => {
       // Arrange
       const testNotification = "notification";
-      const dirigiblePublisher = createDirigiblePublisher<string>();
+      const { object: dirigiblePublisher, destroy } = createDirigiblePublisher<string>();
 
       dirigiblePublisher.notification$.subscribe(() => {
-        fail("No notification should be published when destroyed.");
+        fail("No notification should be published once destroyed.");
       });
 
-      dirigiblePublisher.destroy();
+      destroy();
 
       // Act
       dirigiblePublisher.publish(testNotification);

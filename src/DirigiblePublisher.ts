@@ -1,20 +1,20 @@
 import { Observable, OperatorFunction, Subject } from "rxjs";
+import { DestructibleResource } from "./Destructible";
 
 export default interface DirigiblePublisher<TNotification> {
   notification$: Observable<TNotification>;
   publish(notification: TNotification): void;
   hookIn(operatorFunction: OperatorFunction<TNotification, TNotification>): void;
-  destroy(): void;
 }
 
-export function createDirigiblePublisher<TNotification>(): DirigiblePublisher<TNotification> {
+export function createDirigiblePublisher<TNotification>(): DestructibleResource<DirigiblePublisher<TNotification>> {
   const initialNotificationSubject = new Subject<TNotification>();
   let initialNotification$ = initialNotificationSubject.asObservable();
   const notificationSubject = new Subject<TNotification>();
   const notification$ = notificationSubject.asObservable();
   let initialNotificationSubscription = initialNotification$.subscribe(notificationSubject);
 
-  return {
+  const dirigiblePublisher = {
     notification$,
     publish(notification: TNotification) {
       if (initialNotificationSubject.closed) {
@@ -31,7 +31,11 @@ export function createDirigiblePublisher<TNotification>(): DirigiblePublisher<TN
       initialNotification$ = initialNotification$.pipe(operatorFunction);
       initialNotificationSubscription.unsubscribe();
       initialNotificationSubscription = initialNotification$.subscribe(notificationSubject);
-    },
+    }
+  };
+
+  return {
+    object: dirigiblePublisher,
     destroy() {
       initialNotificationSubscription.unsubscribe();
       notificationSubject.complete();
