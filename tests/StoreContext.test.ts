@@ -2,10 +2,6 @@ import { createStoreContext, storeId } from "../src/StoreContext";
 import { createHubMocks } from "./Mocks";
 import { createHub } from "../src/Hub";
 
-jest.mock("../src/GenerateUUID", () => ({
-  default: () => "0103e331-da06-40f5-9ee6-d89df83719ad"
-}));
-
 jest.mock("../src/Hub");
 
 const {
