@@ -10,7 +10,7 @@ export interface StoreContext<TStore> extends Destructible {
   hub: Hub;
 }
 
-export const storeId = "store";
+export const storeContextId = "store";
 
 export function createStoreContext<TStore>(
   store: Store<TStore>,
@@ -19,12 +19,12 @@ export function createStoreContext<TStore>(
   const { object: hub, destroy: destroyHub } = createHub();
   const setupFuntions = getScopedSetupFunctions(store, initialReducers, hub);
 
-  const storeUnsubscribe = setupFuntions.subscribeToStore(storeId);
-  const destroy = setupFuntions.createDestroy(storeId, storeUnsubscribe, destroyHub);
-  const isDestroyed$ = setupFuntions.createIsDestroyed$(storeId);
+  const storeUnsubscribe = setupFuntions.subscribeToStore(storeContextId);
+  const destroy = setupFuntions.createDestroy(storeContextId, storeUnsubscribe, destroyHub);
+  const isDestroyed$ = setupFuntions.createIsDestroyed$(storeContextId);
 
-  setupFuntions.setupActionDispatching(storeId, isDestroyed$);
-  setupFuntions.setupReducerReplacing(storeId, isDestroyed$);
+  setupFuntions.setupActionDispatching(storeContextId, isDestroyed$);
+  setupFuntions.setupReducerReplacing(storeContextId, isDestroyed$);
 
   return {
     store,

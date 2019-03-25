@@ -1,4 +1,4 @@
-import { createStoreContext, storeId } from "../src/StoreContext";
+import { createStoreContext, storeContextId } from "../src/StoreContext";
 import { createHubMocks } from "./Mocks";
 import { createHub } from "../src/Hub";
 
@@ -69,7 +69,7 @@ describe("StoreContext", () => {
 
       // Assert
       expect(mockStatePublisher.publish).toHaveBeenCalledWith({
-        contextId: storeId
+        contextId: storeContextId
       });
     });
 
@@ -81,7 +81,7 @@ describe("StoreContext", () => {
         action: { type: "TESTACTION" }
       };
       const testActionNotification2 = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         action: { type: "TESTACTION" }
       };
 
@@ -105,7 +105,7 @@ describe("StoreContext", () => {
         reducer: jest.fn()
       };
       const testReducerRegistrationNotification2 = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
@@ -126,7 +126,7 @@ describe("StoreContext", () => {
       };
       createStoreContext(mockStore, initialReducers);
       const testReducerRegistrationNotification = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
@@ -137,7 +137,7 @@ describe("StoreContext", () => {
         key: "testState"
       };
       const testReducerDeregistrationNotification2 = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         key: "testState"
       };
 
@@ -190,7 +190,7 @@ describe("StoreContext", () => {
 
       // Assert
       expect(mockDestructionPublisher.publish).toHaveBeenCalledWith({
-        contextId: storeId
+        contextId: storeContextId
       });
     });
 
@@ -198,7 +198,7 @@ describe("StoreContext", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testActionNotification = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         action: { type: "TESTACTION" }
       };
       storeContext.destroy();
@@ -214,7 +214,7 @@ describe("StoreContext", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testReducerRegistrationNotification = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
@@ -231,7 +231,7 @@ describe("StoreContext", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testReducerRegistrationNotification = {
-        parentContextId: storeId,
+        parentContextId: storeContextId,
         key: "testState"
       };
       storeContext.destroy();
