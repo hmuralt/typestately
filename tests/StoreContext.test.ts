@@ -1,15 +1,31 @@
 import { createStoreContext } from "../src/StoreContext";
-import {
-  reducerRegistrationPublisher,
-  reducerDeregistrationPublisher,
-  dispatchedActionPublisher,
-  statePublisher,
-  destructionPublisher
-} from "../src/Hub";
+import { createHubMocks } from "./Mocks";
+import { createHub } from "../src/Hub";
 
 jest.mock("../src/GenerateUUID", () => ({
   default: () => "0103e331-da06-40f5-9ee6-d89df83719ad"
 }));
+
+jest.mock("../src/Hub");
+
+const {
+  mockHub,
+  mockDispatchedActionPublisher,
+  mockDestructionPublisher,
+  mockReducerRegistrationPublisher,
+  mockReducerDeregistrationPublisher,
+  mockStatePublisher,
+  resetMocks
+} = createHubMocks();
+
+const mockDestroyHub = jest.fn();
+
+(createHub as jest.Mock).mockImplementation(() => {
+  return {
+    object: mockHub,
+    destroy: mockDestroyHub
+  };
+});
 
 describe("StoreContext", () => {
   let mockStore: {
@@ -32,6 +48,9 @@ describe("StoreContext", () => {
       subscribe: mockSubscribe,
       replaceReducer: jest.fn()
     };
+
+    resetMocks();
+    mockDestroyHub.mockReset();
   });
 
   describe("when created", () => {
@@ -44,35 +63,35 @@ describe("StoreContext", () => {
       expect(mockSubscribe.mock.calls.length).toBe(1);
     });
 
-    it("publishes any store state changes with its context id", (done) => {
+    it("publishes any store state changes with its context id", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const storeSubscribeCallback = mockSubscribe.mock.calls[0][0];
-      statePublisher.notification$.subscribe((notification) => {
-        // Assert
-        expect(notification.contextId === storeContext.id);
-        done();
-      });
 
       // Act
       storeSubscribeCallback();
+
+      // Assert
+      expect(mockStatePublisher.publish).toHaveBeenCalledWith({
+        contextId: storeContext.id
+      });
     });
 
     it("dispatches actions that are directed to itself on the store", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testActionNotification1 = {
-        parentcontextId: "fakeContextId",
+        parentContextId: "fakeContextId",
         action: { type: "TESTACTION" }
       };
       const testActionNotification2 = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         action: { type: "TESTACTION" }
       };
 
       // Act
-      dispatchedActionPublisher.publish(testActionNotification1);
-      dispatchedActionPublisher.publish(testActionNotification2);
+      mockDispatchedActionPublisher.publish(testActionNotification1);
+      mockDispatchedActionPublisher.publish(testActionNotification2);
 
       // Assert
       expect(mockStore.dispatch.mock.calls[0][0]).toBe(testActionNotification2.action);
@@ -85,19 +104,19 @@ describe("StoreContext", () => {
       };
       const storeContext = createStoreContext(mockStore, initialReducers);
       const testReducerRegistrationNotification1 = {
-        parentcontextId: "fakeContextId",
+        parentContextId: "fakeContextId",
         key: "testState",
         reducer: jest.fn()
       };
       const testReducerRegistrationNotification2 = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
 
       // Act
-      reducerRegistrationPublisher.publish(testReducerRegistrationNotification1);
-      reducerRegistrationPublisher.publish(testReducerRegistrationNotification2);
+      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification1);
+      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification2);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(1);
@@ -111,24 +130,24 @@ describe("StoreContext", () => {
       };
       const storeContext = createStoreContext(mockStore, initialReducers);
       const testReducerRegistrationNotification = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
-      reducerRegistrationPublisher.publish(testReducerRegistrationNotification);
+      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification);
 
       const testReducerDeregistrationNotification1 = {
-        parentcontextId: "fakeContextId",
+        parentContextId: "fakeContextId",
         key: "testState"
       };
       const testReducerDeregistrationNotification2 = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         key: "testState"
       };
 
       // Act
-      reducerDeregistrationPublisher.publish(testReducerDeregistrationNotification1);
-      reducerDeregistrationPublisher.publish(testReducerDeregistrationNotification2);
+      mockReducerDeregistrationPublisher.publish(testReducerDeregistrationNotification1);
+      mockReducerDeregistrationPublisher.publish(testReducerDeregistrationNotification2);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(2);
@@ -148,31 +167,30 @@ describe("StoreContext", () => {
       expect(mockUnsubscribe.mock.calls.length).toBe(1);
     });
 
-    it("publishes own desctruction", (done) => {
+    it("publishes own desctruction", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
 
-      destructionPublisher.notification$.subscribe((notification) => {
-        // Assert
-        expect(notification.contextId).toBe(storeContext.id);
-        done();
-      });
-
       // Act
       storeContext.destroy();
+
+      // Assert
+      expect(mockDestructionPublisher.publish).toHaveBeenCalledWith({
+        contextId: storeContext.id
+      });
     });
 
     it("stops dispatching actions that are directed to itself", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testActionNotification = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         action: { type: "TESTACTION" }
       };
       storeContext.destroy();
 
       // Act
-      dispatchedActionPublisher.publish(testActionNotification);
+      mockDispatchedActionPublisher.publish(testActionNotification);
 
       // Assert
       expect(mockStore.dispatch.mock.calls.length).toBe(0);
@@ -182,14 +200,14 @@ describe("StoreContext", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testReducerRegistrationNotification = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
       storeContext.destroy();
 
       // Act
-      reducerRegistrationPublisher.publish(testReducerRegistrationNotification);
+      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(0);
@@ -199,16 +217,27 @@ describe("StoreContext", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
       const testReducerRegistrationNotification = {
-        parentcontextId: storeContext.id,
+        parentContextId: storeContext.id,
         key: "testState"
       };
       storeContext.destroy();
 
       // Act
-      reducerDeregistrationPublisher.publish(testReducerRegistrationNotification);
+      mockReducerDeregistrationPublisher.publish(testReducerRegistrationNotification);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(0);
+    });
+
+    it("destroys hub", () => {
+      // Arrange
+      const storeContext = createStoreContext(mockStore, {});
+
+      // Act
+      storeContext.destroy();
+
+      // Assert
+      expect(mockDestroyHub).toHaveBeenCalled();
     });
   });
 });

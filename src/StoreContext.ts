@@ -2,80 +2,93 @@ import { Store, combineReducers, ReducersMapObject, Unsubscribe } from "redux";
 import { merge, Observable } from "rxjs";
 import { filter, map, takeUntil } from "rxjs/operators";
 import generateUUID from "./GenerateUUID";
-import {
-  reducerRegistrationPublisher,
-  reducerDeregistrationPublisher,
-  dispatchedActionPublisher,
-  statePublisher,
-  destructionPublisher
-} from "./Hub";
 import createReducerNotificationScan from "./ReducerNotificationScan";
+import { Hub, createHub } from "./Hub";
+import { Destructible } from "./Destructible";
 
-export interface StoreContext {
+export interface StoreContext<TStore> extends Destructible {
   id: string;
-  destroy(): void;
+  store: Store<TStore>;
+  hub: Hub;
 }
 
-export function createStoreContext<TStore>(store: Store<TStore>, initialReducers: ReducersMapObject): StoreContext {
+export function createStoreContext<TStore>(
+  store: Store<TStore>,
+  initialReducers: ReducersMapObject
+): StoreContext<TStore> {
   const id = `store_${generateUUID()}`;
-  const storeUnsubscribe = subscribeToStore<TStore>(id, store);
-  const destroy = createDestroy(id, storeUnsubscribe);
-  const isDestroyed$ = createIsDestroyed$(id);
+  const { object: hub, destroy: destroyHub } = createHub();
+  const setupFuntions = getScopedSetupFunctions(store, initialReducers, hub);
 
-  setupActionDispatching(id, store, isDestroyed$);
-  setupReducerReplacing(id, store, isDestroyed$, initialReducers);
+  const storeUnsubscribe = setupFuntions.subscribeToStore(id);
+  const destroy = setupFuntions.createDestroy(id, storeUnsubscribe, destroyHub);
+  const isDestroyed$ = setupFuntions.createIsDestroyed$(id);
+
+  setupFuntions.setupActionDispatching(id, isDestroyed$);
+  setupFuntions.setupReducerReplacing(id, isDestroyed$);
 
   return {
     id,
+    store,
+    hub,
     destroy
   };
 }
 
-function subscribeToStore<TStore>(contextId: string, store: Store<TStore>) {
-  return store.subscribe(() => {
-    statePublisher.publish({
-      contextId,
-      state: store.getState()
-    });
-  });
-}
+function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: ReducersMapObject, hub: Hub) {
+  const {
+    dispatchedActionPublisher,
+    destructionPublisher,
+    reducerRegistrationPublisher,
+    reducerDeregistrationPublisher,
+    statePublisher
+  } = hub;
 
-function createDestroy(contextId: string, storeUnsubscribe: Unsubscribe) {
-  return () => {
-    storeUnsubscribe();
+  return {
+    subscribeToStore(contextId: string) {
+      return store.subscribe(() => {
+        statePublisher.publish({
+          contextId,
+          state: store.getState()
+        });
+      });
+    },
 
-    destructionPublisher.publish({
-      contextId
-    });
+    createDestroy(contextId: string, storeUnsubscribe: Unsubscribe, destroyHub: () => void) {
+      return () => {
+        storeUnsubscribe();
+
+        destructionPublisher.publish({
+          contextId
+        });
+
+        destroyHub();
+      };
+    },
+
+    createIsDestroyed$(contextId: string) {
+      return destructionPublisher.notification$
+        .pipe(filter((notification) => notification.contextId === contextId))
+        .pipe(map(() => true));
+    },
+
+    setupActionDispatching(contextId: string, isDestroyed$: Observable<boolean>) {
+      dispatchedActionPublisher.notification$
+        .pipe(filter((notification) => notification.parentContextId === contextId))
+        .pipe(takeUntil(isDestroyed$))
+        .subscribe(({ action }) => {
+          store.dispatch(action);
+        });
+    },
+
+    setupReducerReplacing(contextId: string, isDestroyed$: Observable<boolean>) {
+      merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$)
+        .pipe(filter((notification) => notification.parentContextId === contextId))
+        .pipe(createReducerNotificationScan(initialReducers))
+        .pipe(takeUntil(isDestroyed$))
+        .subscribe((reducers) => {
+          store.replaceReducer(combineReducers(reducers));
+        });
+    }
   };
-}
-
-function createIsDestroyed$(contextId: string) {
-  return destructionPublisher.notification$
-    .pipe(filter((notification) => notification.contextId === contextId))
-    .pipe(map(() => true));
-}
-
-function setupActionDispatching<TStore>(contextId: string, store: Store<TStore>, isDestroyed$: Observable<boolean>) {
-  dispatchedActionPublisher.notification$
-    .pipe(filter((notification) => notification.parentcontextId === contextId))
-    .pipe(takeUntil(isDestroyed$))
-    .subscribe(({ action }) => {
-      store.dispatch(action);
-    });
-}
-
-function setupReducerReplacing<TStore>(
-  contextId: string,
-  store: Store<TStore>,
-  isDestroyed$: Observable<boolean>,
-  initialReducers: ReducersMapObject
-) {
-  merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$)
-    .pipe(filter((notification) => notification.parentcontextId === contextId))
-    .pipe(createReducerNotificationScan(initialReducers))
-    .pipe(takeUntil(isDestroyed$))
-    .subscribe((reducers) => {
-      store.replaceReducer(combineReducers(reducers));
-    });
 }
