@@ -1,6 +1,6 @@
 import { createStoreContext, storeContextId } from "../src/StoreContext";
 import { createHubMocks } from "./Mocks";
-import { createHub } from "../src/Hub";
+import { createHub, StateReportType } from "../src/Hub";
 
 jest.mock("../src/Hub");
 
@@ -8,8 +8,7 @@ const {
   mockHub,
   mockDispatchingActionPublisher,
   mockDestructionPublisher,
-  mockReducerRegistrationPublisher,
-  mockReducerDeregistrationPublisher,
+  mockStateReportPublisher,
   mockStatePublisher,
   resetMocks
 } = createHubMocks();
@@ -99,20 +98,22 @@ describe("StoreContext", () => {
         testStateInitial: (state: {}) => state || {}
       };
       createStoreContext(mockStore, initialReducers);
-      const testReducerRegistrationNotification1 = {
+      const teststateRegistrationNotification1 = {
+        type: StateReportType.registration,
         parentContextId: "fakeContextId",
         key: "testState",
         reducer: jest.fn()
       };
-      const testReducerRegistrationNotification2 = {
+      const teststateRegistrationNotification2 = {
+        type: StateReportType.registration,
         parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
 
       // Act
-      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification1);
-      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification2);
+      mockStateReportPublisher.publish(teststateRegistrationNotification1);
+      mockStateReportPublisher.publish(teststateRegistrationNotification2);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(1);
@@ -125,25 +126,28 @@ describe("StoreContext", () => {
         testStateInitial: (state: {}) => state || {}
       };
       createStoreContext(mockStore, initialReducers);
-      const testReducerRegistrationNotification = {
+      const teststateRegistrationNotification = {
+        type: StateReportType.registration,
         parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
       };
-      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification);
+      mockStateReportPublisher.publish(teststateRegistrationNotification);
 
-      const testReducerDeregistrationNotification1 = {
+      const testStateDeregistrationNotification1 = {
+        type: StateReportType.deregistration,
         parentContextId: "fakeContextId",
         key: "testState"
       };
-      const testReducerDeregistrationNotification2 = {
+      const testStateDeregistrationNotification2 = {
+        type: StateReportType.deregistration,
         parentContextId: storeContextId,
         key: "testState"
       };
 
       // Act
-      mockReducerDeregistrationPublisher.publish(testReducerDeregistrationNotification1);
-      mockReducerDeregistrationPublisher.publish(testReducerDeregistrationNotification2);
+      mockStateReportPublisher.publish(testStateDeregistrationNotification1);
+      mockStateReportPublisher.publish(testStateDeregistrationNotification2);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(2);
@@ -213,7 +217,8 @@ describe("StoreContext", () => {
     it("stops replacing the stores root reducer when new reducer is registered to itself", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
-      const testReducerRegistrationNotification = {
+      const teststateRegistrationNotification = {
+        type: StateReportType.registration,
         parentContextId: storeContextId,
         key: "testState",
         reducer: jest.fn((state: {}) => state || {})
@@ -221,7 +226,7 @@ describe("StoreContext", () => {
       storeContext.destroy();
 
       // Act
-      mockReducerRegistrationPublisher.publish(testReducerRegistrationNotification);
+      mockStateReportPublisher.publish(teststateRegistrationNotification);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(0);
@@ -230,14 +235,15 @@ describe("StoreContext", () => {
     it("stops replacing the stores root reducer when a reducer is deregistered from itself", () => {
       // Arrange
       const storeContext = createStoreContext(mockStore, {});
-      const testReducerRegistrationNotification = {
+      const testStateDeregistrationNotification = {
+        type: StateReportType.deregistration,
         parentContextId: storeContextId,
         key: "testState"
       };
       storeContext.destroy();
 
       // Act
-      mockReducerDeregistrationPublisher.publish(testReducerRegistrationNotification);
+      mockStateReportPublisher.publish(testStateDeregistrationNotification);
 
       // Assert
       expect(mockStore.replaceReducer.mock.calls.length).toBe(0);

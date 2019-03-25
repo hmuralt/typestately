@@ -2,8 +2,7 @@ import { Subject } from "rxjs";
 import {
   DispatchingActionNotification,
   DestructionNotification,
-  ReducerRegistrationNotification,
-  ReducerNotification,
+  StateReportNotification,
   StateNotification,
   Hub
 } from "../src/Hub";
@@ -22,15 +21,13 @@ export function createDirigiblePublisherMock<TNotification>() {
 export function createHubMocks() {
   const mockDispatchingActionPublisher = createDirigiblePublisherMock<DispatchingActionNotification>();
   const mockDestructionPublisher = createDirigiblePublisherMock<DestructionNotification>();
-  const mockReducerRegistrationPublisher = createDirigiblePublisherMock<ReducerRegistrationNotification>();
-  const mockReducerDeregistrationPublisher = createDirigiblePublisherMock<ReducerNotification>();
+  const mockStateReportPublisher = createDirigiblePublisherMock<StateReportNotification>();
   const mockStatePublisher = createDirigiblePublisherMock<StateNotification>();
 
   const mockHub: Hub = {
     dispatchingActionPublisher: mockDispatchingActionPublisher,
     destructionPublisher: mockDestructionPublisher,
-    reducerRegistrationPublisher: mockReducerRegistrationPublisher,
-    reducerDeregistrationPublisher: mockReducerDeregistrationPublisher,
+    stateReportPublisher: mockStateReportPublisher,
     statePublisher: mockStatePublisher
   };
 
@@ -38,8 +35,7 @@ export function createHubMocks() {
     mockHub,
     mockDispatchingActionPublisher,
     mockDestructionPublisher,
-    mockReducerRegistrationPublisher,
-    mockReducerDeregistrationPublisher,
+    mockStateReportPublisher,
     mockStatePublisher,
     resetMocks() {
       mockDispatchingActionPublisher.publish.mockClear();
@@ -50,13 +46,9 @@ export function createHubMocks() {
       mockDestructionPublisher.hookIn.mockClear();
       mockDestructionPublisher.destroy.mockClear();
 
-      mockReducerRegistrationPublisher.publish.mockClear();
-      mockReducerRegistrationPublisher.hookIn.mockClear();
-      mockReducerRegistrationPublisher.destroy.mockClear();
-
-      mockReducerDeregistrationPublisher.publish.mockClear();
-      mockReducerDeregistrationPublisher.hookIn.mockClear();
-      mockReducerDeregistrationPublisher.destroy.mockClear();
+      mockStateReportPublisher.publish.mockClear();
+      mockStateReportPublisher.hookIn.mockClear();
+      mockStateReportPublisher.destroy.mockClear();
 
       mockStatePublisher.publish.mockClear();
       mockStatePublisher.hookIn.mockClear();

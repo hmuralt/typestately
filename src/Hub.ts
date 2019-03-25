@@ -11,13 +11,16 @@ export interface DestructionNotification {
   contextId: string;
 }
 
-export interface ReducerNotification {
-  parentContextId: string;
-  key: string;
+export enum StateReportType {
+  registration,
+  deregistration
 }
 
-export interface ReducerRegistrationNotification extends ReducerNotification {
-  reducer: Reducer;
+export interface StateReportNotification {
+  type: StateReportType;
+  parentContextId: string;
+  key: string;
+  reducer?: Reducer;
 }
 
 export interface StateNotification {
@@ -28,23 +31,20 @@ export interface StateNotification {
 export interface Hub {
   dispatchingActionPublisher: DirigiblePublisher<DispatchingActionNotification>;
   destructionPublisher: DirigiblePublisher<DestructionNotification>;
-  reducerRegistrationPublisher: DirigiblePublisher<ReducerRegistrationNotification>;
-  reducerDeregistrationPublisher: DirigiblePublisher<ReducerNotification>;
+  stateReportPublisher: DirigiblePublisher<StateReportNotification>;
   statePublisher: DirigiblePublisher<StateNotification>;
 }
 
 export function createHub(): DestructibleResource<Hub> {
   const dispatchingActionPublisher = createDirigiblePublisher<DispatchingActionNotification>();
   const destructionPublisher = createDirigiblePublisher<DestructionNotification>();
-  const reducerRegistrationPublisher = createDirigiblePublisher<ReducerRegistrationNotification>();
-  const reducerDeregistrationPublisher = createDirigiblePublisher<ReducerNotification>();
+  const stateReportPublisher = createDirigiblePublisher<StateReportNotification>();
   const statePublisher = createDirigiblePublisher<StateNotification>();
 
   const hub = {
     dispatchingActionPublisher: dispatchingActionPublisher.object,
     destructionPublisher: destructionPublisher.object,
-    reducerRegistrationPublisher: reducerRegistrationPublisher.object,
-    reducerDeregistrationPublisher: reducerDeregistrationPublisher.object,
+    stateReportPublisher: stateReportPublisher.object,
     statePublisher: statePublisher.object
   };
 
@@ -53,8 +53,7 @@ export function createHub(): DestructibleResource<Hub> {
     destroy() {
       dispatchingActionPublisher.destroy();
       destructionPublisher.destroy();
-      reducerRegistrationPublisher.destroy();
-      reducerDeregistrationPublisher.destroy();
+      stateReportPublisher.destroy();
       statePublisher.destroy();
     }
   };

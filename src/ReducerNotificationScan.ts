@@ -1,23 +1,17 @@
 import { scan } from "rxjs/operators";
 import { ReducersMapObject } from "redux";
-import { ReducerNotification, ReducerRegistrationNotification } from "./Hub";
+import { StateReportNotification, StateReportType } from "./Hub";
 
 export default function createReducerNotificationScan(initialReducers: ReducersMapObject = {}) {
-  return scan<ReducerNotification, ReducersMapObject>((reducers, notification) => {
+  return scan<StateReportNotification, ReducersMapObject>((reducers, notification) => {
     const newReducers = { ...reducers };
 
-    if (isReducerRegistrationNotification(notification)) {
+    if (notification.type === StateReportType.registration && notification.reducer !== undefined) {
       newReducers[notification.key] = notification.reducer;
-    } else {
+    } else if (notification.type === StateReportType.deregistration) {
       delete newReducers[notification.key];
     }
 
     return newReducers;
   }, initialReducers);
-}
-
-function isReducerRegistrationNotification(
-  notification: ReducerNotification
-): notification is ReducerRegistrationNotification {
-  return notification !== undefined && (notification as ReducerRegistrationNotification).reducer !== undefined;
 }

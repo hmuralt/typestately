@@ -1,5 +1,5 @@
 import { Store, combineReducers, ReducersMapObject, Unsubscribe } from "redux";
-import { merge, Observable } from "rxjs";
+import { Observable } from "rxjs";
 import { filter, map, takeUntil } from "rxjs/operators";
 import createReducerNotificationScan from "./ReducerNotificationScan";
 import { Hub, createHub } from "./Hub";
@@ -34,13 +34,7 @@ export function createStoreContext<TStore>(
 }
 
 function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: ReducersMapObject, hub: Hub) {
-  const {
-    dispatchingActionPublisher,
-    destructionPublisher,
-    reducerRegistrationPublisher,
-    reducerDeregistrationPublisher,
-    statePublisher
-  } = hub;
+  const { dispatchingActionPublisher, destructionPublisher, stateReportPublisher, statePublisher } = hub;
 
   return {
     subscribeToStore(contextId: string) {
@@ -80,7 +74,7 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
     },
 
     setupReducerReplacing(contextId: string, isDestroyed$: Observable<boolean>) {
-      merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$)
+      stateReportPublisher.notification$
         .pipe(filter((notification) => notification.parentContextId === contextId))
         .pipe(createReducerNotificationScan(initialReducers))
         .pipe(takeUntil(isDestroyed$))

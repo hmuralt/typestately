@@ -4,6 +4,7 @@ import { createStateContext, StateBuildingBlock } from "../src/StateContext";
 import { withDefaultStateReducer, withRouteReducer } from "../src/ReducerHelpers";
 import { isRouteAction } from "../src/RouteAction";
 import { createHubMocks } from "./Mocks";
+import { StateReportType } from "../src/Hub";
 
 jest.mock("redux");
 jest.mock("../src/ReducerHelpers");
@@ -29,8 +30,7 @@ const {
   mockHub,
   mockDispatchingActionPublisher,
   mockDestructionPublisher,
-  mockReducerRegistrationPublisher,
-  mockReducerDeregistrationPublisher,
+  mockStateReportPublisher,
   mockStatePublisher,
   resetMocks
 } = createHubMocks();
@@ -56,7 +56,8 @@ describe("StateContext", () => {
 
         // Assert
         expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
-        expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+        expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+          type: StateReportType.registration,
           parentContextId: testParentContextId,
           key: testKey,
           reducer: testDefaultStateReducer
@@ -79,7 +80,8 @@ describe("StateContext", () => {
           testDefaultStateReducer,
           testStateBuildingBlockWithRoutingOptions.routingOptions
         );
-        expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+        expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+          type: StateReportType.registration,
           parentContextId: testParentContextId,
           key: testKey,
           reducer: testRouteReducer
@@ -97,7 +99,8 @@ describe("StateContext", () => {
       (combineReducers as jest.Mock).mockReturnValue(combinedReducer);
 
       // Act
-      mockReducerRegistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -105,7 +108,8 @@ describe("StateContext", () => {
 
       // Assert
       expect(combineReducers).toHaveBeenCalled();
-      expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+      expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+        type: StateReportType.registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: combinedReducer
@@ -123,7 +127,8 @@ describe("StateContext", () => {
         [testKey]: contextState
       };
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
-      mockReducerRegistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -148,20 +153,23 @@ describe("StateContext", () => {
       // Arrange
       const subStateKey = "substate1";
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
-      mockReducerRegistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
       // Act
-      mockReducerDeregistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.deregistration,
         parentContextId: stateContext.id,
         key: subStateKey
       });
 
       // Assert
-      expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+      expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+        type: StateReportType.registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: testDefaultStateReducer
@@ -313,7 +321,8 @@ describe("StateContext", () => {
       });
 
       // Assert
-      expect(mockReducerDeregistrationPublisher.publish).toHaveBeenCalledWith({
+      expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+        type: StateReportType.deregistration,
         parentContextId: testParentContextId,
         key: testKey
       });
@@ -344,7 +353,8 @@ describe("StateContext", () => {
       stateContext.destroy();
 
       // Assert
-      expect(mockReducerDeregistrationPublisher.publish).toHaveBeenCalledWith({
+      expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+        type: StateReportType.deregistration,
         parentContextId: testParentContextId,
         key: testKey
       });
@@ -370,14 +380,16 @@ describe("StateContext", () => {
       stateContext.destroy();
 
       // Act
-      mockReducerRegistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
       // Assert
-      expect(mockReducerRegistrationPublisher.publish).not.toHaveBeenCalledWith({
+      expect(mockStateReportPublisher.publish).not.toHaveBeenCalledWith({
+        type: StateReportType.registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: testRouteReducer
@@ -395,7 +407,8 @@ describe("StateContext", () => {
         [testKey]: contextState
       };
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
-      mockReducerRegistrationPublisher.publish({
+      mockStateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -403,7 +416,7 @@ describe("StateContext", () => {
 
       stateContext.destroy();
 
-      const subscription = mockReducerRegistrationPublisher.notification$.subscribe(() => {
+      const subscription = mockStateReportPublisher.notification$.subscribe(() => {
         // Assert
         fail();
       });

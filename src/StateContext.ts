@@ -1,12 +1,12 @@
 import { Reducer, combineReducers, Action, ReducersMapObject } from "redux";
-import { Observable, merge, combineLatest, BehaviorSubject } from "rxjs";
+import { Observable, combineLatest, BehaviorSubject } from "rxjs";
 import { filter, map, distinctUntilChanged, takeUntil, startWith } from "rxjs/operators";
 import * as shallowEqual from "shallowequal";
 import createReducerNotificationScan from "./ReducerNotificationScan";
 import { withRoute } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import { withDefaultStateReducer, withRouteReducer } from "./ReducerHelpers";
-import { Hub } from "./Hub";
+import { Hub, StateReportType } from "./Hub";
 import { Destructible } from "./Destructible";
 
 export interface StateContext<TState, TActionType> extends Destructible {
@@ -50,7 +50,7 @@ export function createStateContext<TState, TActionType>(
   const stateSubject = setupFuntions.createStateSubject(baseObservables);
 
   setupFuntions.setupSelfDestructionOnParentsDestruction(destroy, baseObservables.isDestroyed$);
-  setupFuntions.setupStateReducerRegistrationPublishing(baseObservables);
+  setupFuntions.setupStateRegistrationPublishing(baseObservables);
   setupFuntions.setupStatePublishing(id, baseObservables);
   setupFuntions.setupActionDispatching(id, baseObservables.isDestroyed$);
   setupFuntions.publishOwnReducer(id);
@@ -71,18 +71,13 @@ function getScopedSetupFunctions<TState, TActionType>(
   hub: Hub
 ) {
   const { key, defaultState, stateKey, parentContextId, reducer, routingOptions } = stateBuildingBlock;
-  const {
-    dispatchingActionPublisher,
-    destructionPublisher,
-    reducerRegistrationPublisher,
-    reducerDeregistrationPublisher,
-    statePublisher
-  } = hub;
+  const { dispatchingActionPublisher, destructionPublisher, stateReportPublisher, statePublisher } = hub;
 
   return {
     createDestroy(contextId: string) {
       return () => {
-        reducerDeregistrationPublisher.publish({
+        stateReportPublisher.publish({
+          type: StateReportType.deregistration,
           parentContextId: parentContextId,
           key
         });
@@ -126,7 +121,7 @@ function getScopedSetupFunctions<TState, TActionType>(
     },
 
     createReducers$(contextId: string) {
-      return merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$).pipe(
+      return stateReportPublisher.notification$.pipe(
         filter((notification) => notification.parentContextId === contextId),
         createReducerNotificationScan(),
         map((reducers) => {
@@ -166,13 +161,14 @@ function getScopedSetupFunctions<TState, TActionType>(
         });
     },
 
-    setupStateReducerRegistrationPublishing(baseObservables: BaseObservables) {
+    setupStateRegistrationPublishing(baseObservables: BaseObservables) {
       baseObservables.reducers$
         .pipe(takeUntil(baseObservables.isDestroyed$))
         .subscribe(({ reducers, isSingleLevelStateOnly }) => {
           const stateContextReducer = isSingleLevelStateOnly ? reducers[stateKey] : combineReducers(reducers);
 
-          reducerRegistrationPublisher.publish({
+          stateReportPublisher.publish({
+            type: StateReportType.registration,
             parentContextId: parentContextId,
             key,
             reducer: stateContextReducer
@@ -235,7 +231,8 @@ function getScopedSetupFunctions<TState, TActionType>(
           ? withRouteReducer(contextId, defaultStateReducer, routingOptions)
           : defaultStateReducer;
 
-      reducerRegistrationPublisher.publish({
+      stateReportPublisher.publish({
+        type: StateReportType.registration,
         parentContextId: contextId,
         key: stateKey,
         reducer: routeReducer

@@ -31,7 +31,6 @@ describe("Hub", () => {
       expect(destroyFunctions[1]).toHaveBeenCalled();
       expect(destroyFunctions[2]).toHaveBeenCalled();
       expect(destroyFunctions[3]).toHaveBeenCalled();
-      expect(destroyFunctions[4]).toHaveBeenCalled();
     });
   });
 });
