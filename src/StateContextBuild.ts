@@ -1,9 +1,10 @@
 import { Reducer, Action } from "redux";
 import RoutingOption from "./RoutingOption";
 import { createStateContext, StateContext } from "./StateContext";
+import { Hub } from "./Hub";
 
 export interface StateContextDefinition<TState, TActionType> {
-  attachTo(parentcontextId: string): StateContext<TState, TActionType>;
+  attachTo(hub: Hub, parentContextId: string): StateContext<TState, TActionType>;
 }
 
 export interface StateContextStructure<TState, TActionType> {
@@ -25,15 +26,18 @@ export function buildStateContext<TState = {}, TActionType = any>(
       routingOptions?: Map<TActionType, RoutingOption>
     ) {
       return {
-        attachTo(parentcontextId: string) {
-          return createStateContext({
-            key,
-            defaultState,
-            stateKey,
-            reducer,
-            routingOptions,
-            parentcontextId
-          });
+        attachTo(hub: Hub, parentContextId: string) {
+          return createStateContext(
+            {
+              key,
+              defaultState,
+              stateKey,
+              reducer,
+              routingOptions,
+              parentContextId
+            },
+            hub
+          );
         }
       };
     }
