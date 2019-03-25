@@ -27,7 +27,7 @@ const testStateBuildingBlock: StateBuildingBlock<typeof testDefaultState, string
 };
 const {
   mockHub,
-  mockDispatchedActionPublisher,
+  mockDispatchingActionPublisher,
   mockDestructionPublisher,
   mockReducerRegistrationPublisher,
   mockReducerDeregistrationPublisher,
@@ -264,7 +264,7 @@ describe("StateContext", () => {
     stateContext.dispatch(testAction);
 
     // Assert
-    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalledWith({
+    expect(mockDispatchingActionPublisher.publish).toHaveBeenCalledWith({
       parentContextId: testParentContextId,
       action: testAction
     });
@@ -279,24 +279,24 @@ describe("StateContext", () => {
     stateContext.dispatch(testAction, true);
 
     // Assert
-    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalled();
-    expect(mockDispatchedActionPublisher.publish.mock.calls[0][0].parentContextId).toBe(testParentContextId);
-    expect(isRouteAction(mockDispatchedActionPublisher.publish.mock.calls[0][0].action)).toBeTruthy();
+    expect(mockDispatchingActionPublisher.publish).toHaveBeenCalled();
+    expect(mockDispatchingActionPublisher.publish.mock.calls[0][0].parentContextId).toBe(testParentContextId);
+    expect(isRouteAction(mockDispatchingActionPublisher.publish.mock.calls[0][0].action)).toBeTruthy();
   });
 
-  it("redirects dispatched actions from itself to parent", () => {
+  it("redirects dispatching actions from itself to parent", () => {
     // Arrange
     const testAction = { type: "testAction" };
     const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
-    mockDispatchedActionPublisher.publish({
+    mockDispatchingActionPublisher.publish({
       parentContextId: stateContext.id,
       action: testAction
     });
 
     // Assert
-    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalledWith({
+    expect(mockDispatchingActionPublisher.publish).toHaveBeenCalledWith({
       parentContextId: testParentContextId,
       action: testAction
     });
@@ -440,19 +440,19 @@ describe("StateContext", () => {
       subscription.unsubscribe();
     });
 
-    it("doesn't redirect dispatched actions from itself to parent anymore", () => {
+    it("doesn't redirect dispatching actions from itself to parent anymore", () => {
       // Arrange
       const testAction = { type: "testAction" };
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       stateContext.destroy();
 
-      const subscription = mockDispatchedActionPublisher.notification$.pipe(skip(1)).subscribe(() => {
+      const subscription = mockDispatchingActionPublisher.notification$.pipe(skip(1)).subscribe(() => {
         // Assert
         fail();
       });
 
       // Act
-      mockDispatchedActionPublisher.publish({
+      mockDispatchingActionPublisher.publish({
         parentContextId: stateContext.id,
         action: testAction
       });

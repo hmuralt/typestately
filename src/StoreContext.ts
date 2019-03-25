@@ -35,7 +35,7 @@ export function createStoreContext<TStore>(
 
 function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: ReducersMapObject, hub: Hub) {
   const {
-    dispatchedActionPublisher,
+    dispatchingActionPublisher,
     destructionPublisher,
     reducerRegistrationPublisher,
     reducerDeregistrationPublisher,
@@ -71,7 +71,7 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
     },
 
     setupActionDispatching(contextId: string, isDestroyed$: Observable<boolean>) {
-      dispatchedActionPublisher.notification$
+      dispatchingActionPublisher.notification$
         .pipe(filter((notification) => notification.parentContextId === contextId))
         .pipe(takeUntil(isDestroyed$))
         .subscribe(({ action }) => {

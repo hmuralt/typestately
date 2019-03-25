@@ -6,7 +6,7 @@ jest.mock("../src/Hub");
 
 const {
   mockHub,
-  mockDispatchedActionPublisher,
+  mockDispatchingActionPublisher,
   mockDestructionPublisher,
   mockReducerRegistrationPublisher,
   mockReducerDeregistrationPublisher,
@@ -86,8 +86,8 @@ describe("StoreContext", () => {
       };
 
       // Act
-      mockDispatchedActionPublisher.publish(testActionNotification1);
-      mockDispatchedActionPublisher.publish(testActionNotification2);
+      mockDispatchingActionPublisher.publish(testActionNotification1);
+      mockDispatchingActionPublisher.publish(testActionNotification2);
 
       // Assert
       expect(mockStore.dispatch.mock.calls[0][0]).toBe(testActionNotification2.action);
@@ -204,7 +204,7 @@ describe("StoreContext", () => {
       storeContext.destroy();
 
       // Act
-      mockDispatchedActionPublisher.publish(testActionNotification);
+      mockDispatchingActionPublisher.publish(testActionNotification);
 
       // Assert
       expect(mockStore.dispatch.mock.calls.length).toBe(0);

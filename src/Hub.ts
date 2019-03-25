@@ -2,7 +2,7 @@ import { Action, Reducer } from "redux";
 import DirigiblePublisher, { createDirigiblePublisher } from "./DirigiblePublisher";
 import { DestructibleResource } from "./Destructible";
 
-export interface DispatchedActionNotification {
+export interface DispatchingActionNotification {
   parentContextId: string;
   action: Action;
 }
@@ -26,7 +26,7 @@ export interface StateNotification {
 }
 
 export interface Hub {
-  dispatchedActionPublisher: DirigiblePublisher<DispatchedActionNotification>;
+  dispatchingActionPublisher: DirigiblePublisher<DispatchingActionNotification>;
   destructionPublisher: DirigiblePublisher<DestructionNotification>;
   reducerRegistrationPublisher: DirigiblePublisher<ReducerRegistrationNotification>;
   reducerDeregistrationPublisher: DirigiblePublisher<ReducerNotification>;
@@ -34,14 +34,14 @@ export interface Hub {
 }
 
 export function createHub(): DestructibleResource<Hub> {
-  const dispatchedActionPublisher = createDirigiblePublisher<DispatchedActionNotification>();
+  const dispatchingActionPublisher = createDirigiblePublisher<DispatchingActionNotification>();
   const destructionPublisher = createDirigiblePublisher<DestructionNotification>();
   const reducerRegistrationPublisher = createDirigiblePublisher<ReducerRegistrationNotification>();
   const reducerDeregistrationPublisher = createDirigiblePublisher<ReducerNotification>();
   const statePublisher = createDirigiblePublisher<StateNotification>();
 
   const hub = {
-    dispatchedActionPublisher: dispatchedActionPublisher.object,
+    dispatchingActionPublisher: dispatchingActionPublisher.object,
     destructionPublisher: destructionPublisher.object,
     reducerRegistrationPublisher: reducerRegistrationPublisher.object,
     reducerDeregistrationPublisher: reducerDeregistrationPublisher.object,
@@ -51,7 +51,7 @@ export function createHub(): DestructibleResource<Hub> {
   return {
     object: hub,
     destroy() {
-      dispatchedActionPublisher.destroy();
+      dispatchingActionPublisher.destroy();
       destructionPublisher.destroy();
       reducerRegistrationPublisher.destroy();
       reducerDeregistrationPublisher.destroy();

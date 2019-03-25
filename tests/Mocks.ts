@@ -1,6 +1,6 @@
 import { Subject } from "rxjs";
 import {
-  DispatchedActionNotification,
+  DispatchingActionNotification,
   DestructionNotification,
   ReducerRegistrationNotification,
   ReducerNotification,
@@ -20,14 +20,14 @@ export function createDirigiblePublisherMock<TNotification>() {
 }
 
 export function createHubMocks() {
-  const mockDispatchedActionPublisher = createDirigiblePublisherMock<DispatchedActionNotification>();
+  const mockDispatchingActionPublisher = createDirigiblePublisherMock<DispatchingActionNotification>();
   const mockDestructionPublisher = createDirigiblePublisherMock<DestructionNotification>();
   const mockReducerRegistrationPublisher = createDirigiblePublisherMock<ReducerRegistrationNotification>();
   const mockReducerDeregistrationPublisher = createDirigiblePublisherMock<ReducerNotification>();
   const mockStatePublisher = createDirigiblePublisherMock<StateNotification>();
 
   const mockHub: Hub = {
-    dispatchedActionPublisher: mockDispatchedActionPublisher,
+    dispatchingActionPublisher: mockDispatchingActionPublisher,
     destructionPublisher: mockDestructionPublisher,
     reducerRegistrationPublisher: mockReducerRegistrationPublisher,
     reducerDeregistrationPublisher: mockReducerDeregistrationPublisher,
@@ -36,15 +36,15 @@ export function createHubMocks() {
 
   return {
     mockHub,
-    mockDispatchedActionPublisher,
+    mockDispatchingActionPublisher,
     mockDestructionPublisher,
     mockReducerRegistrationPublisher,
     mockReducerDeregistrationPublisher,
     mockStatePublisher,
     resetMocks() {
-      mockDispatchedActionPublisher.publish.mockClear();
-      mockDispatchedActionPublisher.hookIn.mockClear();
-      mockDispatchedActionPublisher.destroy.mockClear();
+      mockDispatchingActionPublisher.publish.mockClear();
+      mockDispatchingActionPublisher.hookIn.mockClear();
+      mockDispatchingActionPublisher.destroy.mockClear();
 
       mockDestructionPublisher.publish.mockClear();
       mockDestructionPublisher.hookIn.mockClear();

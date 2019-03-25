@@ -72,7 +72,7 @@ function getScopedSetupFunctions<TState, TActionType>(
 ) {
   const { key, defaultState, stateKey, parentContextId, reducer, routingOptions } = stateBuildingBlock;
   const {
-    dispatchedActionPublisher,
+    dispatchingActionPublisher,
     destructionPublisher,
     reducerRegistrationPublisher,
     reducerDeregistrationPublisher,
@@ -104,7 +104,7 @@ function getScopedSetupFunctions<TState, TActionType>(
       return (action: Action<TActionType>, isRoutedToThisContext = false) => {
         const actionToDispatch = isRoutedToThisContext ? withRoute(contextId, action) : action;
 
-        dispatchedActionPublisher.publish({
+        dispatchingActionPublisher.publish({
           parentContextId: parentContextId,
           action: actionToDispatch
         });
@@ -211,13 +211,13 @@ function getScopedSetupFunctions<TState, TActionType>(
     },
 
     setupActionDispatching(contextId: string, isDestroyed$: Observable<boolean>) {
-      dispatchedActionPublisher.notification$
+      dispatchingActionPublisher.notification$
         .pipe(
           filter((notification) => notification.parentContextId === contextId),
           takeUntil(isDestroyed$)
         )
         .subscribe(({ action }) => {
-          dispatchedActionPublisher.publish({
+          dispatchingActionPublisher.publish({
             parentContextId: parentContextId,
             action
           });
