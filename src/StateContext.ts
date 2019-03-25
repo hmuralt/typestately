@@ -3,23 +3,17 @@ import { Observable, merge, combineLatest, BehaviorSubject } from "rxjs";
 import { filter, map, distinctUntilChanged, takeUntil, startWith } from "rxjs/operators";
 import * as shallowEqual from "shallowequal";
 import createReducerNotificationScan from "./ReducerNotificationScan";
-import {
-  reducerRegistrationPublisher,
-  reducerDeregistrationPublisher,
-  dispatchedActionPublisher,
-  statePublisher,
-  destructionPublisher
-} from "./Hub";
 import { withRoute } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import { withDefaultStateReducer, withRouteReducer } from "./ReducerHelpers";
+import { Hub } from "./Hub";
+import { Destructible } from "./Destructible";
 
-export interface StateContext<TState, TActionType> {
+export interface StateContext<TState, TActionType> extends Destructible {
   id: string;
   state: TState;
   state$: Observable<TState>;
   dispatch<TAction extends Action<TActionType>>(action: TAction, isRoutedToThisContext?: boolean): void;
-  destroy(): void;
 }
 
 export interface StateBuildingBlock<TState, TActionType> {
@@ -28,7 +22,7 @@ export interface StateBuildingBlock<TState, TActionType> {
   defaultState: TState;
   reducer?: Reducer<Readonly<TState>, Action<TActionType>>;
   routingOptions?: Map<TActionType, RoutingOption>;
-  parentcontextId: string;
+  parentContextId: string;
 }
 
 interface ReducersData {
@@ -44,20 +38,22 @@ interface BaseObservables {
 }
 
 export function createStateContext<TState, TActionType>(
-  stateBuildingBlock: StateBuildingBlock<TState, TActionType>
+  stateBuildingBlock: StateBuildingBlock<TState, TActionType>,
+  hub: Hub
 ): StateContext<TState, TActionType> {
-  const { key, defaultState, stateKey, parentcontextId } = stateBuildingBlock;
-  const id = `${parentcontextId}.${key}`;
-  const destroy = createDestroy(id, parentcontextId, key);
-  const dispatch = createDispatch(id, parentcontextId);
-  const baseObservables = createBaseObservables(id, parentcontextId, key, stateKey);
-  const stateSubject = createStateSubject(defaultState, stateKey, baseObservables);
+  const id = `${stateBuildingBlock.parentContextId}.${stateBuildingBlock.key}`;
+  const setupFuntions = getScopedSetupFunctions(stateBuildingBlock, hub);
 
-  setupSelfDestructionOnParentsDestruction(parentcontextId, destroy, baseObservables.isDestroyed$);
-  setupStateReducerRegistrationPublishing(parentcontextId, key, stateKey, baseObservables);
-  setupStatePublishing(id, baseObservables);
-  setupActionDispatching(id, parentcontextId, baseObservables.isDestroyed$);
-  publishOwnReducer(id, stateBuildingBlock);
+  const destroy = setupFuntions.createDestroy(id);
+  const dispatch = setupFuntions.createDispatch(id);
+  const baseObservables = setupFuntions.createBaseObservables(id);
+  const stateSubject = setupFuntions.createStateSubject(baseObservables);
+
+  setupFuntions.setupSelfDestructionOnParentsDestruction(destroy, baseObservables.isDestroyed$);
+  setupFuntions.setupStateReducerRegistrationPublishing(baseObservables);
+  setupFuntions.setupStatePublishing(id, baseObservables);
+  setupFuntions.setupActionDispatching(id, baseObservables.isDestroyed$);
+  setupFuntions.publishOwnReducer(id);
 
   return {
     id,
@@ -70,182 +66,180 @@ export function createStateContext<TState, TActionType>(
   };
 }
 
-function createDestroy(contextId: string, parentcontextId: string, key: string) {
-  return () => {
-    reducerDeregistrationPublisher.publish({
-      parentcontextId,
-      key
-    });
-
-    destructionPublisher.publish({
-      contextId
-    });
-  };
-}
-
-function createIsDestroyed$(contextId: string) {
-  return destructionPublisher.notification$.pipe(
-    filter((notification) => notification.contextId === contextId),
-    map(() => true)
-  );
-}
-
-function createDispatch<TActionType>(contextId: string, parentcontextId: string) {
-  return (action: Action<TActionType>, isRoutedToThisContext = false) => {
-    const actionToDispatch = isRoutedToThisContext ? withRoute(contextId, action) : action;
-
-    dispatchedActionPublisher.publish({
-      parentcontextId,
-      action: actionToDispatch
-    });
-  };
-}
-
-function createBaseObservables(
-  contextId: string,
-  parentcontextId: string,
-  key: string,
-  stateKey: string
-): BaseObservables {
-  const reducers$ = createReducers$(contextId, stateKey);
-  const contextState$ = createContext$(parentcontextId, key);
-  const isSingleLevelStateOnly$ = createIsSingleLevelStateOnly$(reducers$);
-  const isDestroyed$ = createIsDestroyed$(contextId);
+function getScopedSetupFunctions<TState, TActionType>(
+  stateBuildingBlock: StateBuildingBlock<TState, TActionType>,
+  hub: Hub
+) {
+  const { key, defaultState, stateKey, parentContextId, reducer, routingOptions } = stateBuildingBlock;
+  const {
+    dispatchedActionPublisher,
+    destructionPublisher,
+    reducerRegistrationPublisher,
+    reducerDeregistrationPublisher,
+    statePublisher
+  } = hub;
 
   return {
-    reducers$,
-    contextState$,
-    isSingleLevelStateOnly$,
-    isDestroyed$
-  };
-}
+    createDestroy(contextId: string) {
+      return () => {
+        reducerDeregistrationPublisher.publish({
+          parentContextId: parentContextId,
+          key
+        });
 
-function createReducers$(contextId: string, stateKey: string) {
-  return merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$).pipe(
-    filter((notification) => notification.parentcontextId === contextId),
-    createReducerNotificationScan(),
-    map((reducers) => {
-      const keys = Object.getOwnPropertyNames(reducers);
-      const isSingleLevelStateOnly = keys.length === 1 && keys[0] === stateKey;
+        destructionPublisher.publish({
+          contextId
+        });
+      };
+    },
+
+    createIsDestroyed$(contextId: string) {
+      return destructionPublisher.notification$.pipe(
+        filter((notification) => notification.contextId === contextId),
+        map(() => true)
+      );
+    },
+
+    createDispatch(contextId: string) {
+      return (action: Action<TActionType>, isRoutedToThisContext = false) => {
+        const actionToDispatch = isRoutedToThisContext ? withRoute(contextId, action) : action;
+
+        dispatchedActionPublisher.publish({
+          parentContextId: parentContextId,
+          action: actionToDispatch
+        });
+      };
+    },
+
+    createBaseObservables(contextId: string): BaseObservables {
+      const reducers$ = this.createReducers$(contextId);
+      const contextState$ = this.createContext$();
+      const isSingleLevelStateOnly$ = this.createIsSingleLevelStateOnly$(reducers$);
+      const isDestroyed$ = this.createIsDestroyed$(contextId);
+
       return {
-        reducers,
-        isSingleLevelStateOnly
-      } as ReducersData;
-    })
-  );
-}
+        reducers$,
+        contextState$,
+        isSingleLevelStateOnly$,
+        isDestroyed$
+      };
+    },
 
-function createIsSingleLevelStateOnly$(reducers$: Observable<ReducersData>) {
-  return reducers$.pipe(
-    map(({ isSingleLevelStateOnly }) => isSingleLevelStateOnly),
-    startWith(true),
-    distinctUntilChanged()
-  );
-}
+    createReducers$(contextId: string) {
+      return merge(reducerRegistrationPublisher.notification$, reducerDeregistrationPublisher.notification$).pipe(
+        filter((notification) => notification.parentContextId === contextId),
+        createReducerNotificationScan(),
+        map((reducers) => {
+          const keys = Object.getOwnPropertyNames(reducers);
+          const isSingleLevelStateOnly = keys.length === 1 && keys[0] === stateKey;
+          return {
+            reducers,
+            isSingleLevelStateOnly
+          } as ReducersData;
+        })
+      );
+    },
 
-function createContext$(parentcontextId: string, key: string) {
-  return statePublisher.notification$.pipe(
-    filter((notification) => notification.contextId === parentcontextId),
-    map((notification) => notification.state[key] as {})
-  );
-}
-function setupSelfDestructionOnParentsDestruction(
-  parentcontextId: string,
-  destroy: () => void,
-  isDestroyed$: Observable<boolean>
-) {
-  destructionPublisher.notification$
-    .pipe(
-      filter((notification) => notification.contextId === parentcontextId),
-      takeUntil(isDestroyed$)
-    )
-    .subscribe(() => {
-      destroy();
-    });
-}
+    createIsSingleLevelStateOnly$(reducers$: Observable<ReducersData>) {
+      return reducers$.pipe(
+        map(({ isSingleLevelStateOnly }) => isSingleLevelStateOnly),
+        startWith(true),
+        distinctUntilChanged()
+      );
+    },
 
-function setupStateReducerRegistrationPublishing(
-  parentcontextId: string,
-  key: string,
-  stateKey: string,
-  baseObservables: BaseObservables
-) {
-  baseObservables.reducers$
-    .pipe(takeUntil(baseObservables.isDestroyed$))
-    .subscribe(({ reducers, isSingleLevelStateOnly }) => {
-      const stateContextReducer = isSingleLevelStateOnly ? reducers[stateKey] : combineReducers(reducers);
+    createContext$() {
+      return statePublisher.notification$.pipe(
+        filter((notification) => notification.contextId === parentContextId),
+        map((notification) => notification.state[key] as {})
+      );
+    },
 
-      reducerRegistrationPublisher.publish({
-        parentcontextId,
-        key,
-        reducer: stateContextReducer
-      });
-    });
-}
+    setupSelfDestructionOnParentsDestruction(destroy: () => void, isDestroyed$: Observable<boolean>) {
+      destructionPublisher.notification$
+        .pipe(
+          filter((notification) => notification.contextId === parentContextId),
+          takeUntil(isDestroyed$)
+        )
+        .subscribe(() => {
+          destroy();
+        });
+    },
 
-function setupStatePublishing(contextId: string, baseObservables: BaseObservables) {
-  combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
-    .pipe(takeUntil(baseObservables.isDestroyed$))
-    .subscribe(([state, isSingleLevelStateOnly]) => {
-      if (isSingleLevelStateOnly) {
+    setupStateReducerRegistrationPublishing(baseObservables: BaseObservables) {
+      baseObservables.reducers$
+        .pipe(takeUntil(baseObservables.isDestroyed$))
+        .subscribe(({ reducers, isSingleLevelStateOnly }) => {
+          const stateContextReducer = isSingleLevelStateOnly ? reducers[stateKey] : combineReducers(reducers);
+
+          reducerRegistrationPublisher.publish({
+            parentContextId: parentContextId,
+            key,
+            reducer: stateContextReducer
+          });
+        });
+    },
+
+    setupStatePublishing(contextId: string, baseObservables: BaseObservables) {
+      combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
+        .pipe(takeUntil(baseObservables.isDestroyed$))
+        .subscribe(([state, isSingleLevelStateOnly]) => {
+          if (isSingleLevelStateOnly) {
+            return;
+          }
+
+          statePublisher.publish({
+            contextId,
+            state
+          });
+        });
+    },
+
+    createStateSubject(baseObservables: BaseObservables) {
+      const stateSubject = new BehaviorSubject(defaultState);
+      combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
+        .pipe(
+          map(([contextState, isSingleLevelStateOnly]) => {
+            return isSingleLevelStateOnly ? contextState : contextState[stateKey];
+          }),
+          distinctUntilChanged(shallowEqual),
+          takeUntil(baseObservables.isDestroyed$)
+        )
+        .subscribe(stateSubject);
+
+      return stateSubject;
+    },
+
+    setupActionDispatching(contextId: string, isDestroyed$: Observable<boolean>) {
+      dispatchedActionPublisher.notification$
+        .pipe(
+          filter((notification) => notification.parentContextId === contextId),
+          takeUntil(isDestroyed$)
+        )
+        .subscribe(({ action }) => {
+          dispatchedActionPublisher.publish({
+            parentContextId: parentContextId,
+            action
+          });
+        });
+    },
+
+    publishOwnReducer(contextId: string) {
+      if (reducer === undefined) {
         return;
       }
 
-      statePublisher.publish({
-        contextId,
-        state
+      const defaultStateReducer = withDefaultStateReducer(defaultState, reducer);
+      const routeReducer =
+        routingOptions !== undefined
+          ? withRouteReducer(contextId, defaultStateReducer, routingOptions)
+          : defaultStateReducer;
+
+      reducerRegistrationPublisher.publish({
+        parentContextId: contextId,
+        key: stateKey,
+        reducer: routeReducer
       });
-    });
-}
-
-function createStateSubject<TState>(defaultState: TState, stateKey: string, baseObservables: BaseObservables) {
-  const stateSubject = new BehaviorSubject(defaultState);
-  combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
-    .pipe(
-      map(([contextState, isSingleLevelStateOnly]) => {
-        return isSingleLevelStateOnly ? contextState : contextState[stateKey];
-      }),
-      distinctUntilChanged(shallowEqual),
-      takeUntil(baseObservables.isDestroyed$)
-    )
-    .subscribe(stateSubject);
-
-  return stateSubject;
-}
-
-function setupActionDispatching(contextId: string, parentcontextId: string, isDestroyed$: Observable<boolean>) {
-  dispatchedActionPublisher.notification$
-    .pipe(
-      filter((notification) => notification.parentcontextId === contextId),
-      takeUntil(isDestroyed$)
-    )
-    .subscribe(({ action }) => {
-      dispatchedActionPublisher.publish({
-        parentcontextId,
-        action
-      });
-    });
-}
-
-function publishOwnReducer<TState, TActionType>(
-  contextId: string,
-  reducerBuildingBlock: StateBuildingBlock<TState, TActionType>
-) {
-  if (reducerBuildingBlock.reducer === undefined) {
-    return;
-  }
-
-  const { defaultState, reducer, routingOptions, stateKey } = reducerBuildingBlock;
-
-  const defaultStateReducer = withDefaultStateReducer(defaultState, reducer);
-  const routeReducer =
-    routingOptions !== undefined
-      ? withRouteReducer(contextId, defaultStateReducer, routingOptions)
-      : defaultStateReducer;
-
-  reducerRegistrationPublisher.publish({
-    parentcontextId: contextId,
-    key: stateKey,
-    reducer: routeReducer
-  });
+    }
+  };
 }

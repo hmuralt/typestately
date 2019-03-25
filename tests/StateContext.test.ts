@@ -1,18 +1,12 @@
-jest.mock("redux");
-jest.mock("../src/ReducerHelpers");
-
 import { combineReducers } from "redux";
-import { filter, take, skip } from "rxjs/operators";
+import { skip, take } from "rxjs/operators";
 import { createStateContext, StateBuildingBlock } from "../src/StateContext";
-import {
-  reducerRegistrationPublisher,
-  reducerDeregistrationPublisher,
-  dispatchedActionPublisher,
-  statePublisher,
-  destructionPublisher
-} from "../src/Hub";
 import { withDefaultStateReducer, withRouteReducer } from "../src/ReducerHelpers";
 import { isRouteAction } from "../src/RouteAction";
+import { createHubMocks } from "./Mocks";
+
+jest.mock("redux");
+jest.mock("../src/ReducerHelpers");
 
 const testKey = "testKey";
 const testDefaultState = {
@@ -22,17 +16,30 @@ const testStateKey = "testStateKey";
 const testReducer = (state: typeof testDefaultState) => state;
 const testDefaultStateReducer = (state: typeof testDefaultState) => state;
 const testRouteReducer = (state: typeof testDefaultState) => state;
-const testParentcontextId = "testParentContextId";
+const testParentContextId = "testParentContextId";
 const testStateBuildingBlock: StateBuildingBlock<typeof testDefaultState, string> = {
   key: testKey,
   defaultState: testDefaultState,
   stateKey: testStateKey,
   reducer: testReducer,
   routingOptions: undefined,
-  parentcontextId: testParentcontextId
+  parentContextId: testParentContextId
 };
+const {
+  mockHub,
+  mockDispatchedActionPublisher,
+  mockDestructionPublisher,
+  mockReducerRegistrationPublisher,
+  mockReducerDeregistrationPublisher,
+  mockStatePublisher,
+  resetMocks
+} = createHubMocks();
 
 describe("StateContext", () => {
+  beforeEach(() => {
+    resetMocks();
+  });
+
   describe("when created", () => {
     beforeEach(() => {
       (withDefaultStateReducer as jest.Mock).mockClear();
@@ -42,85 +49,70 @@ describe("StateContext", () => {
     });
 
     describe("with reducer", () => {
-      it("publishes reducer enhanced as default state reducer to parent", (done) => {
+      it("publishes reducer enhanced as default state reducer to parent", () => {
         // Arrange
-        reducerRegistrationPublisher.notification$
-          .pipe(
-            filter((notification) => notification.parentcontextId === testParentcontextId),
-            take(1)
-          )
-          .subscribe((notification) => {
-            // Assert
-            expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
-            expect(notification.key).toBe(testKey);
-            expect(notification.reducer).toBe(testDefaultStateReducer);
-            done();
-          });
-
         // Act
-        createStateContext(testStateBuildingBlock);
+        createStateContext(testStateBuildingBlock, mockHub);
+
+        // Assert
+        expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
+        expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+          parentContextId: testParentContextId,
+          key: testKey,
+          reducer: testDefaultStateReducer
+        });
       });
     });
 
     describe("with reducer and routing options", () => {
-      it("publishes reducer enhanced as routing default state reducer to parent", (done) => {
+      it("publishes reducer enhanced as routing default state reducer to parent", () => {
         // Arrange
         const testStateBuildingBlockWithRoutingOptions = { ...testStateBuildingBlock, routingOptions: new Map() };
 
-        reducerRegistrationPublisher.notification$
-          .pipe(
-            filter((notification) => notification.parentcontextId === testParentcontextId),
-            take(1)
-          )
-          .subscribe((notification) => {
-            // Assert
-            expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
-            expect(withRouteReducer).toHaveBeenCalledWith(
-              expect.anything(),
-              testDefaultStateReducer,
-              testStateBuildingBlockWithRoutingOptions.routingOptions
-            );
-            expect(notification.key).toBe(testKey);
-            expect(notification.reducer).toBe(testRouteReducer);
-            done();
-          });
-
         // Act
-        createStateContext(testStateBuildingBlockWithRoutingOptions);
+        createStateContext(testStateBuildingBlockWithRoutingOptions, mockHub);
+
+        // Assert
+        expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
+        expect(withRouteReducer).toHaveBeenCalledWith(
+          expect.anything(),
+          testDefaultStateReducer,
+          testStateBuildingBlockWithRoutingOptions.routingOptions
+        );
+        expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+          parentContextId: testParentContextId,
+          key: testKey,
+          reducer: testRouteReducer
+        });
       });
     });
   });
 
   describe("when sub state reducer is registered", () => {
-    it("publishes updated reducer", (done) => {
+    it("publishes updated reducer", () => {
       // Arrange
       const subStateKey = "substate1";
-      const stateContext = createStateContext(testStateBuildingBlock);
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       const combinedReducer = (state: typeof testDefaultState) => state;
       (combineReducers as jest.Mock).mockReturnValue(combinedReducer);
 
-      reducerRegistrationPublisher.notification$
-        .pipe(
-          filter((notification) => notification.parentcontextId === testParentcontextId),
-          take(1)
-        )
-        .subscribe((notification) => {
-          // Assert
-          expect(combineReducers).toHaveBeenCalled();
-          expect(notification.key).toBe(testKey);
-          expect(notification.reducer).toBe(combinedReducer);
-          done();
-        });
-
       // Act
-      reducerRegistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      mockReducerRegistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
+
+      // Assert
+      expect(combineReducers).toHaveBeenCalled();
+      expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+        parentContextId: testParentContextId,
+        key: testKey,
+        reducer: combinedReducer
+      });
     });
 
-    it("publishes its own state for sub states", (done) => {
+    it("publishes its own state for sub states", () => {
       // Arrange
       const subStateKey = "substate1";
       const contextState = {
@@ -130,100 +122,82 @@ describe("StateContext", () => {
       const parentContextState = {
         [testKey]: contextState
       };
-      const stateContext = createStateContext(testStateBuildingBlock);
-      reducerRegistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
+      mockReducerRegistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
-      statePublisher.notification$
-        .pipe(
-          filter((notification) => notification.contextId === stateContext.id),
-          take(1)
-        )
-        .subscribe((notification) => {
-          // Assert
-          expect(notification.state).toBe(contextState);
-          done();
-        });
-
       // Act
-      statePublisher.publish({
-        contextId: testParentcontextId,
+      mockStatePublisher.publish({
+        contextId: testParentContextId,
         state: parentContextState
+      });
+
+      // Assert
+      expect(mockStatePublisher.publish).toHaveBeenCalledWith({
+        contextId: stateContext.id,
+        state: contextState
       });
     });
   });
 
   describe("when sub state reducer is deregistered", () => {
-    it("publishes updated reducer", (done) => {
+    it("publishes updated reducer", () => {
       // Arrange
       const subStateKey = "substate1";
-      const stateContext = createStateContext(testStateBuildingBlock);
-      reducerRegistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
+      mockReducerRegistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
-      reducerRegistrationPublisher.notification$
-        .pipe(
-          filter((notification) => notification.parentcontextId === testParentcontextId),
-          take(1)
-        )
-        .subscribe((notification) => {
-          // Assert
-          expect(notification.key).toBe(testKey);
-          expect(notification.reducer).toBe(testDefaultStateReducer);
-          done();
-        });
-
       // Act
-      reducerDeregistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      mockReducerDeregistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey
+      });
+
+      // Assert
+      expect(mockReducerRegistrationPublisher.publish).toHaveBeenCalledWith({
+        parentContextId: testParentContextId,
+        key: testKey,
+        reducer: testDefaultStateReducer
       });
     });
   });
 
   it("provides the last state", () => {
     // Arrange
-    const stateContext = createStateContext(testStateBuildingBlock);
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
     // Act
     // Assert
     expect(stateContext.state).toEqual(testDefaultState);
   });
 
-  it("updates the state", (done) => {
+  it("updates the state", () => {
     // Arrange
     const newState = { value: 1 };
     const parentContextState = {
       [testKey]: newState
     };
-    const stateContext = createStateContext(testStateBuildingBlock);
-
-    stateContext.state$
-      .pipe(
-        skip(1),
-        take(1)
-      )
-      .subscribe(() => {
-        // Assert
-        expect(stateContext.state).toEqual(newState);
-        done();
-      });
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
-    statePublisher.publish({
-      contextId: testParentcontextId,
+    mockStatePublisher.publish({
+      contextId: testParentContextId,
       state: parentContextState
     });
+
+    // Assert
+    expect(stateContext.state).toEqual(newState);
   });
 
   it("publishes the last state", (done) => {
     // Arrange
-    const stateContext = createStateContext(testStateBuildingBlock);
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
     stateContext.state$.pipe(take(1)).subscribe((state) => {
@@ -239,7 +213,7 @@ describe("StateContext", () => {
     const parentContextState = {
       [testKey]: newState
     };
-    const stateContext = createStateContext(testStateBuildingBlock);
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     stateContext.state$
       .pipe(
@@ -253,8 +227,8 @@ describe("StateContext", () => {
       });
 
     // Act
-    statePublisher.publish({
-      contextId: testParentcontextId,
+    mockStatePublisher.publish({
+      contextId: testParentContextId,
       state: parentContextState
     });
   });
@@ -266,10 +240,10 @@ describe("StateContext", () => {
       [testKey]: newState
     };
     const testUpdate = {
-      contextId: testParentcontextId,
+      contextId: testParentContextId,
       state: parentContextState
     };
-    const stateContext = createStateContext(testStateBuildingBlock);
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     stateContext.state$.pipe(skip(2)).subscribe(() => {
       // Assert
@@ -277,166 +251,137 @@ describe("StateContext", () => {
     });
 
     // Act
-    statePublisher.publish(testUpdate);
-    statePublisher.publish(testUpdate);
+    mockStatePublisher.publish(testUpdate);
+    mockStatePublisher.publish(testUpdate);
   });
 
-  it("publishes actions to be dispatched to parent", (done) => {
+  it("publishes actions to be dispatched to parent", () => {
     // Arrange
     const testAction = { type: "testAction" };
-    const stateContext = createStateContext(testStateBuildingBlock);
-
-    dispatchedActionPublisher.notification$.pipe(take(1)).subscribe((notification) => {
-      // Assert
-      expect(notification.parentcontextId).toBe(testParentcontextId);
-      expect(notification.action).toBe(testAction);
-      done();
-    });
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
     stateContext.dispatch(testAction);
+
+    // Assert
+    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalledWith({
+      parentContextId: testParentContextId,
+      action: testAction
+    });
   });
 
-  it("publishes routed actions", (done) => {
+  it("publishes routed actions", () => {
     // Arrange
     const testAction = { type: "testAction" };
-    const stateContext = createStateContext(testStateBuildingBlock);
-
-    dispatchedActionPublisher.notification$.pipe(take(1)).subscribe((notification) => {
-      // Assert
-      expect(notification.parentcontextId).toBe(testParentcontextId);
-      expect(isRouteAction(notification.action)).toBe(true);
-      done();
-    });
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
     stateContext.dispatch(testAction, true);
+
+    // Assert
+    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalled();
+    expect(mockDispatchedActionPublisher.publish.mock.calls[0][0].parentContextId).toBe(testParentContextId);
+    expect(isRouteAction(mockDispatchedActionPublisher.publish.mock.calls[0][0].action)).toBeTruthy();
   });
 
-  it("redirects dispatched actions to itself to parent", (done) => {
+  it("redirects dispatched actions from itself to parent", () => {
     // Arrange
     const testAction = { type: "testAction" };
-    const stateContext = createStateContext(testStateBuildingBlock);
-
-    dispatchedActionPublisher.notification$
-      .pipe(
-        filter((notification) => notification.parentcontextId === testParentcontextId),
-        take(1)
-      )
-      .subscribe((notification) => {
-        // Assert
-        expect(notification.parentcontextId).toBe(testParentcontextId);
-        expect(notification.action).toBe(testAction);
-        done();
-      });
+    const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
     // Act
-    dispatchedActionPublisher.publish({
-      parentcontextId: stateContext.id,
+    mockDispatchedActionPublisher.publish({
+      parentContextId: stateContext.id,
+      action: testAction
+    });
+
+    // Assert
+    expect(mockDispatchedActionPublisher.publish).toHaveBeenCalledWith({
+      parentContextId: testParentContextId,
       action: testAction
     });
   });
 
   describe("when parent destroyed", () => {
-    it("publishes deregistration", (done) => {
+    it("publishes deregistration", () => {
       // Arrange
-      createStateContext(testStateBuildingBlock);
-
-      reducerDeregistrationPublisher.notification$
-        .pipe(
-          filter((notification) => notification.parentcontextId === testParentcontextId),
-          take(1)
-        )
-        .subscribe((notification) => {
-          // Assert
-          expect(notification.key).toBe(testKey);
-          done();
-        });
+      createStateContext(testStateBuildingBlock, mockHub);
 
       // Act
-      destructionPublisher.publish({
-        contextId: testParentcontextId
+      mockDestructionPublisher.publish({
+        contextId: testParentContextId
+      });
+
+      // Assert
+      expect(mockReducerDeregistrationPublisher.publish).toHaveBeenCalledWith({
+        parentContextId: testParentContextId,
+        key: testKey
       });
     });
 
-    it("publishes its destruction", (done) => {
+    it("publishes its destruction", () => {
       // Arrange
-      const stateContext = createStateContext(testStateBuildingBlock);
-
-      destructionPublisher.notification$
-        .pipe(
-          filter((notification) => notification.contextId === stateContext.id),
-          take(1)
-        )
-        .subscribe(() => {
-          // Assert
-          done();
-        });
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
       // Act
-      destructionPublisher.publish({
-        contextId: testParentcontextId
+      mockDestructionPublisher.publish({
+        contextId: testParentContextId
+      });
+
+      // Assert
+      expect(mockDestructionPublisher.publish).toHaveBeenCalledWith({
+        contextId: stateContext.id
       });
     });
   });
 
   describe("when destroyed", () => {
-    it("publishes deregistration", (done) => {
+    it("publishes deregistration", () => {
       // Arrange
-      const stateContext = createStateContext(testStateBuildingBlock);
-
-      reducerDeregistrationPublisher.notification$
-        .pipe(
-          filter((notification) => notification.parentcontextId === testParentcontextId),
-          take(1)
-        )
-        .subscribe((notification) => {
-          // Assert
-          expect(notification.key).toBe(testKey);
-          done();
-        });
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
       // Act
       stateContext.destroy();
+
+      // Assert
+      expect(mockReducerDeregistrationPublisher.publish).toHaveBeenCalledWith({
+        parentContextId: testParentContextId,
+        key: testKey
+      });
     });
 
-    it("publishes its destruction", (done) => {
+    it("publishes its destruction", () => {
       // Arrange
-      const stateContext = createStateContext(testStateBuildingBlock);
-
-      destructionPublisher.notification$
-        .pipe(
-          filter((notification) => notification.contextId === stateContext.id),
-          take(1)
-        )
-        .subscribe(() => {
-          // Assert
-          done();
-        });
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
       // Act
       stateContext.destroy();
+
+      // Assert
+      expect(mockDestructionPublisher.publish).toHaveBeenCalledWith({
+        contextId: stateContext.id
+      });
     });
 
     it("does not publish updated reducer anymore", () => {
       // Arrange
       const subStateKey = "substate1";
-      const stateContext = createStateContext(testStateBuildingBlock);
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       stateContext.destroy();
 
-      const subscription = reducerRegistrationPublisher.notification$.pipe(skip(1)).subscribe(() => {
-        // Assert
-        fail();
-      });
-
       // Act
-      reducerRegistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      mockReducerRegistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
-      subscription.unsubscribe();
+      // Assert
+      expect(mockReducerRegistrationPublisher.publish).not.toHaveBeenCalledWith({
+        parentContextId: testParentContextId,
+        key: testKey,
+        reducer: testRouteReducer
+      });
     });
 
     it("does not publish its own state for sub states anymore", () => {
@@ -449,23 +394,23 @@ describe("StateContext", () => {
       const parentContextState = {
         [testKey]: contextState
       };
-      const stateContext = createStateContext(testStateBuildingBlock);
-      reducerRegistrationPublisher.publish({
-        parentcontextId: stateContext.id,
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
+      mockReducerRegistrationPublisher.publish({
+        parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
       });
 
       stateContext.destroy();
 
-      const subscription = reducerRegistrationPublisher.notification$.subscribe(() => {
+      const subscription = mockReducerRegistrationPublisher.notification$.subscribe(() => {
         // Assert
         fail();
       });
 
       // Act
-      statePublisher.publish({
-        contextId: testParentcontextId,
+      mockStatePublisher.publish({
+        contextId: testParentContextId,
         state: parentContextState
       });
 
@@ -478,7 +423,7 @@ describe("StateContext", () => {
       const parentContextState = {
         [testKey]: newState
       };
-      const stateContext = createStateContext(testStateBuildingBlock);
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       stateContext.destroy();
 
       const subscription = stateContext.state$.pipe(skip(1)).subscribe(() => {
@@ -487,28 +432,28 @@ describe("StateContext", () => {
       });
 
       // Act
-      statePublisher.publish({
-        contextId: testParentcontextId,
+      mockStatePublisher.publish({
+        contextId: testParentContextId,
         state: parentContextState
       });
 
       subscription.unsubscribe();
     });
 
-    it("doesn't redirect dispatched actions to itself to parent anymore", () => {
+    it("doesn't redirect dispatched actions from itself to parent anymore", () => {
       // Arrange
       const testAction = { type: "testAction" };
-      const stateContext = createStateContext(testStateBuildingBlock);
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       stateContext.destroy();
 
-      const subscription = dispatchedActionPublisher.notification$.pipe(skip(1)).subscribe(() => {
+      const subscription = mockDispatchedActionPublisher.notification$.pipe(skip(1)).subscribe(() => {
         // Assert
         fail();
       });
 
       // Act
-      dispatchedActionPublisher.publish({
-        parentcontextId: stateContext.id,
+      mockDispatchedActionPublisher.publish({
+        parentContextId: stateContext.id,
         action: testAction
       });
 
