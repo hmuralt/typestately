@@ -2,6 +2,7 @@ import { Reducer, Action } from "redux";
 import RoutingOption from "./RoutingOption";
 import { createStateContext, StateContext } from "./StateContext";
 import { Hub } from "./Hub";
+import { storeId } from "./StoreContext";
 
 export interface StateContextDefinition<TState, TActionType> {
   attachTo(hub: Hub, parentContextId: string): StateContext<TState, TActionType>;
@@ -26,7 +27,7 @@ export function buildStateContext<TState = {}, TActionType = any>(
       routingOptions?: Map<TActionType, RoutingOption>
     ) {
       return {
-        attachTo(hub: Hub, parentContextId: string) {
+        attachTo(hub: Hub, parentContextId: string = storeId) {
           return createStateContext(
             {
               key,

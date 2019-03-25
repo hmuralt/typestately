@@ -1,34 +1,32 @@
 import { Store, combineReducers, ReducersMapObject, Unsubscribe } from "redux";
 import { merge, Observable } from "rxjs";
 import { filter, map, takeUntil } from "rxjs/operators";
-import generateUUID from "./GenerateUUID";
 import createReducerNotificationScan from "./ReducerNotificationScan";
 import { Hub, createHub } from "./Hub";
 import { Destructible } from "./Destructible";
 
 export interface StoreContext<TStore> extends Destructible {
-  id: string;
   store: Store<TStore>;
   hub: Hub;
 }
+
+export const storeId = "store";
 
 export function createStoreContext<TStore>(
   store: Store<TStore>,
   initialReducers: ReducersMapObject
 ): StoreContext<TStore> {
-  const id = `store_${generateUUID()}`;
   const { object: hub, destroy: destroyHub } = createHub();
   const setupFuntions = getScopedSetupFunctions(store, initialReducers, hub);
 
-  const storeUnsubscribe = setupFuntions.subscribeToStore(id);
-  const destroy = setupFuntions.createDestroy(id, storeUnsubscribe, destroyHub);
-  const isDestroyed$ = setupFuntions.createIsDestroyed$(id);
+  const storeUnsubscribe = setupFuntions.subscribeToStore(storeId);
+  const destroy = setupFuntions.createDestroy(storeId, storeUnsubscribe, destroyHub);
+  const isDestroyed$ = setupFuntions.createIsDestroyed$(storeId);
 
-  setupFuntions.setupActionDispatching(id, isDestroyed$);
-  setupFuntions.setupReducerReplacing(id, isDestroyed$);
+  setupFuntions.setupActionDispatching(storeId, isDestroyed$);
+  setupFuntions.setupReducerReplacing(storeId, isDestroyed$);
 
   return {
-    id,
     store,
     hub,
     destroy
