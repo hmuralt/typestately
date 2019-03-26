@@ -5,7 +5,7 @@ import { Hub } from "./Hub";
 import { storeContextId } from "./StoreContext";
 
 export interface StateContextDefinition<TState, TActionType> {
-  attachTo(hub: Hub, parentContextId: string): StateContext<TState, TActionType>;
+  attachTo(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
 }
 
 export interface StateContextStructure<TState, TActionType> {
