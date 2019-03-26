@@ -48,8 +48,26 @@ describe("StateContext", () => {
       (withRouteReducer as jest.Mock).mockReturnValue(testRouteReducer);
     });
 
+    describe("without reducer", () => {
+      it("publishes registration without reducer", () => {
+        // Arrange
+        const testStateBuildingBlockWithoutReducer = { ...testStateBuildingBlock, reducer: undefined };
+
+        // Act
+        createStateContext(testStateBuildingBlockWithoutReducer, mockHub);
+
+        // Assert
+        expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
+          type: StateReportType.Registration,
+          parentContextId: testParentContextId,
+          key: testKey,
+          reducer: undefined
+        });
+      });
+    });
+
     describe("with reducer", () => {
-      it("publishes reducer enhanced as default state reducer to parent", () => {
+      it("publishes registration with reducer enhanced as default state reducer to parent", () => {
         // Arrange
         // Act
         createStateContext(testStateBuildingBlock, mockHub);
@@ -57,7 +75,7 @@ describe("StateContext", () => {
         // Assert
         expect(withDefaultStateReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
         expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-          type: StateReportType.registration,
+          type: StateReportType.Registration,
           parentContextId: testParentContextId,
           key: testKey,
           reducer: testDefaultStateReducer
@@ -66,7 +84,7 @@ describe("StateContext", () => {
     });
 
     describe("with reducer and routing options", () => {
-      it("publishes reducer enhanced as routing default state reducer to parent", () => {
+      it("publishes registration with reducer enhanced as routing default state reducer to parent", () => {
         // Arrange
         const testStateBuildingBlockWithRoutingOptions = { ...testStateBuildingBlock, routingOptions: new Map() };
 
@@ -81,7 +99,7 @@ describe("StateContext", () => {
           testStateBuildingBlockWithRoutingOptions.routingOptions
         );
         expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-          type: StateReportType.registration,
+          type: StateReportType.Registration,
           parentContextId: testParentContextId,
           key: testKey,
           reducer: testRouteReducer
@@ -100,7 +118,7 @@ describe("StateContext", () => {
 
       // Act
       mockStateReportPublisher.publish({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -109,7 +127,7 @@ describe("StateContext", () => {
       // Assert
       expect(combineReducers).toHaveBeenCalled();
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: combinedReducer
@@ -128,7 +146,7 @@ describe("StateContext", () => {
       };
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       mockStateReportPublisher.publish({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -154,7 +172,7 @@ describe("StateContext", () => {
       const subStateKey = "substate1";
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       mockStateReportPublisher.publish({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -162,14 +180,14 @@ describe("StateContext", () => {
 
       // Act
       mockStateReportPublisher.publish({
-        type: StateReportType.deregistration,
+        type: StateReportType.Deregistration,
         parentContextId: stateContext.id,
         key: subStateKey
       });
 
       // Assert
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: testDefaultStateReducer
@@ -322,7 +340,7 @@ describe("StateContext", () => {
 
       // Assert
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-        type: StateReportType.deregistration,
+        type: StateReportType.Deregistration,
         parentContextId: testParentContextId,
         key: testKey
       });
@@ -354,7 +372,7 @@ describe("StateContext", () => {
 
       // Assert
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
-        type: StateReportType.deregistration,
+        type: StateReportType.Deregistration,
         parentContextId: testParentContextId,
         key: testKey
       });
@@ -381,7 +399,7 @@ describe("StateContext", () => {
 
       // Act
       mockStateReportPublisher.publish({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
@@ -389,7 +407,7 @@ describe("StateContext", () => {
 
       // Assert
       expect(mockStateReportPublisher.publish).not.toHaveBeenCalledWith({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: testParentContextId,
         key: testKey,
         reducer: testRouteReducer
@@ -408,7 +426,7 @@ describe("StateContext", () => {
       };
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
       mockStateReportPublisher.publish({
-        type: StateReportType.registration,
+        type: StateReportType.Registration,
         parentContextId: stateContext.id,
         key: subStateKey,
         reducer: testReducer
