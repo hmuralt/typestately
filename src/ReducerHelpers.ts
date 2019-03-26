@@ -3,6 +3,32 @@ import RouteAction, { isRouteAction } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import DefaultStateReducer from "./DefaultStateReducer";
 
+export function createReducer<TState, TActionType>() {
+  const reducerFunctions = new Map<TActionType, Reducer<Readonly<TState>, Action<TActionType>>>();
+
+  function handling<TAction extends Action<TActionType>>(
+    type: TActionType,
+    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
+  ) {
+    reducerFunctions.set(type, reducerFunction);
+    return reducer;
+  }
+
+  function reducer(state: TState, action: Action<TActionType>) {
+    if (!reducerFunctions.has(action.type)) {
+      return state;
+    }
+
+    const reducerFunction = reducerFunctions.get(action.type)!;
+
+    return reducerFunction(state, action);
+  }
+
+  reducer.handling = handling;
+
+  return reducer;
+}
+
 export function withDefaultStateReducer<TState, TActionType>(
   defaultState: TState,
   reducer: Reducer<TState, Action<TActionType>>
@@ -39,30 +65,4 @@ export function withRouteReducer<TState, TActionType>(
 
     return reducer(state, actionToHandle);
   };
-}
-
-export function createReducer<TState, TActionType>() {
-  const reducerFunctions = new Map<TActionType, Reducer<Readonly<TState>, Action<TActionType>>>();
-
-  function handling<TAction extends Action<TActionType>>(
-    type: TActionType,
-    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
-  ) {
-    reducerFunctions.set(type, reducerFunction);
-    return reducer;
-  }
-
-  function reducer(state: TState, action: Action<TActionType>) {
-    if (!reducerFunctions.has(action.type)) {
-      return state;
-    }
-
-    const reducerFunction = reducerFunctions.get(action.type)!;
-
-    return reducerFunction(state, action);
-  }
-
-  reducer.handling = handling;
-
-  return reducer;
 }
