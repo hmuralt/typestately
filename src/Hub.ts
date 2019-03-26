@@ -12,8 +12,8 @@ export interface DestructionNotification {
 }
 
 export enum StateReportType {
-  registration,
-  deregistration
+  Registration,
+  Deregistration
 }
 
 export interface StateReportNotification {
