@@ -1,9 +1,9 @@
 import { Store, combineReducers, ReducersMapObject, Unsubscribe } from "redux";
 import { Observable } from "rxjs";
-import { filter, map, takeUntil } from "rxjs/operators";
-import createReducerNotificationScan from "./ReducerNotificationScan";
-import { Hub, createHub } from "./Hub";
+import { filter, map, takeUntil, scan } from "rxjs/operators";
+import { Hub, createHub, StateReportNotification, StateReportType } from "./Hub";
 import { Destructible } from "./Destructible";
+import updateReducers from "./UpdateReducers";
 
 export interface StoreContext<TStore> extends Destructible {
   store: Store<TStore>;
@@ -12,19 +12,26 @@ export interface StoreContext<TStore> extends Destructible {
 
 export const storeContextId = "store";
 
+interface StateReport {
+  reducers: ReducersMapObject;
+  isUnchanged: boolean;
+}
+
 export function createStoreContext<TStore>(
   store: Store<TStore>,
-  initialReducers: ReducersMapObject
+  initialReducers: ReducersMapObject,
+  contextId: string = storeContextId
 ): StoreContext<TStore> {
   const { object: hub, destroy: destroyHub } = createHub();
   const setupFuntions = getScopedSetupFunctions(store, initialReducers, hub);
 
-  const storeUnsubscribe = setupFuntions.subscribeToStore(storeContextId);
-  const destroy = setupFuntions.createDestroy(storeContextId, storeUnsubscribe, destroyHub);
-  const isDestroyed$ = setupFuntions.createIsDestroyed$(storeContextId);
+  const storeUnsubscribe = setupFuntions.subscribeToStore(contextId);
+  const destroy = setupFuntions.createDestroy(contextId, storeUnsubscribe, destroyHub);
+  const isDestroyed$ = setupFuntions.createIsDestroyed$(contextId);
+  const stateReport$ = setupFuntions.createStateReport$(contextId);
 
-  setupFuntions.setupActionDispatching(storeContextId, isDestroyed$);
-  setupFuntions.setupReducerReplacing(storeContextId, isDestroyed$);
+  setupFuntions.setupActionDispatching(contextId, isDestroyed$);
+  setupFuntions.setupReducerReplacing(contextId, stateReport$, isDestroyed$);
 
   return {
     store,
@@ -39,10 +46,7 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
   return {
     subscribeToStore(contextId: string) {
       return store.subscribe(() => {
-        statePublisher.publish({
-          contextId,
-          state: store.getState()
-        });
+        this.publishState(contextId);
       });
     },
 
@@ -64,23 +68,60 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
         .pipe(map(() => true));
     },
 
+    createStateReport$(contextId: string) {
+      return stateReportPublisher.notification$.pipe(
+        filter((notification) => notification.parentContextId === contextId),
+        scan<StateReportNotification, StateReport>(
+          (stateReport, notification) => {
+            if (notification.type === StateReportType.Registration && notification.reducer === undefined) {
+              return {
+                ...stateReport,
+                isUnchanged: true
+              };
+            }
+
+            const reducers = updateReducers(stateReport.reducers, notification);
+
+            return {
+              reducers,
+              isUnchanged: false
+            };
+          },
+          {
+            reducers: initialReducers,
+            isUnchanged: false
+          }
+        )
+      );
+    },
+
     setupActionDispatching(contextId: string, isDestroyed$: Observable<boolean>) {
       dispatchingActionPublisher.notification$
-        .pipe(filter((notification) => notification.parentContextId === contextId))
-        .pipe(takeUntil(isDestroyed$))
+        .pipe(
+          filter((notification) => notification.parentContextId === contextId),
+          takeUntil(isDestroyed$)
+        )
         .subscribe(({ action }) => {
           store.dispatch(action);
         });
     },
 
-    setupReducerReplacing(contextId: string, isDestroyed$: Observable<boolean>) {
-      stateReportPublisher.notification$
-        .pipe(filter((notification) => notification.parentContextId === contextId))
-        .pipe(createReducerNotificationScan(initialReducers))
-        .pipe(takeUntil(isDestroyed$))
-        .subscribe((reducers) => {
-          store.replaceReducer(combineReducers(reducers));
-        });
+    setupReducerReplacing(contextId: string, stateReport$: Observable<StateReport>, isDestroyed$: Observable<boolean>) {
+      stateReport$.pipe(takeUntil(isDestroyed$)).subscribe((stateReport) => {
+        if (stateReport.isUnchanged) {
+          this.publishState(contextId);
+          return;
+        }
+
+        store.replaceReducer(combineReducers(stateReport.reducers));
+      });
+    },
+
+    publishState(contextId: string) {
+      statePublisher.publish({
+        contextId,
+        state: store.getState()
+      });
     }
   };
 }
