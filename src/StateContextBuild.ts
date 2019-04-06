@@ -1,8 +1,9 @@
-import { Reducer, Action } from "redux";
+import { Action } from "redux";
 import RoutingOption from "./RoutingOption";
 import { createStateContext, StateContext } from "./StateContext";
 import { Hub } from "./Hub";
 import { storeContextId } from "./StoreContext";
+import DefaultStateReducer from "./DefaultStateReducer";
 
 export interface StateContextDefinition<TState, TActionType> {
   attachTo(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
@@ -10,7 +11,7 @@ export interface StateContextDefinition<TState, TActionType> {
 
 export interface StateContextStructure<TState, TActionType> {
   setReducer(
-    reducer?: Reducer<Readonly<TState>, Action<TActionType>>,
+    reducer?: DefaultStateReducer<Readonly<TState>, Action<TActionType>>,
     routingOptions?: Map<TActionType, RoutingOption>
   ): StateContextDefinition<TState, TActionType>;
 }
@@ -23,7 +24,7 @@ export function buildStateContext<TState = {}, TActionType = any>(
 ): StateContextStructure<TState, TActionType> {
   return {
     setReducer(
-      reducer?: Reducer<Readonly<TState>, Action<TActionType>>,
+      reducer?: DefaultStateReducer<Readonly<TState>, Action<TActionType>>,
       routingOptions?: Map<TActionType, RoutingOption>
     ) {
       return {

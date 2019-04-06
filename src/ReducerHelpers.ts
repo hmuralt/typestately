@@ -9,7 +9,7 @@ export function createReducer<TState, TActionType>() {
   function handling<TAction extends Action<TActionType>>(
     type: TActionType,
     reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
-  ) {
+  ): (state: TState, action: Action<TActionType>) => TState {
     reducerFunctions.set(type, reducerFunction);
     return reducer;
   }
@@ -32,7 +32,7 @@ export function createReducer<TState, TActionType>() {
 export function withDefaultStateReducer<TState, TActionType>(
   defaultState: TState,
   reducer: Reducer<TState, Action<TActionType>>
-): DefaultStateReducer<TState, Action<TActionType>> {
+): Reducer<TState, Action<TActionType>> {
   return (state: TState | undefined = defaultState, action: Action<TActionType>) => {
     return reducer(state, action);
   };
