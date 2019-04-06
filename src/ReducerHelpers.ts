@@ -29,7 +29,7 @@ export function createReducer<TState, TActionType>() {
   return reducer;
 }
 
-export function withDefaultStateReducer<TState, TActionType>(
+export function withDefaultStateToReduxReducer<TState, TActionType>(
   defaultState: TState,
   reducer: Reducer<TState, Action<TActionType>>
 ): Reducer<TState, Action<TActionType>> {
