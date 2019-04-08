@@ -1,4 +1,4 @@
-import { withDefaultStateReducer, withRouteReducer, createReducer } from "../src/ReducerHelpers";
+import { withDefaultStateToReduxReducer, withRouteReducer, createReducer } from "../src/ReducerHelpers";
 import { withRoute } from "../src/RouteAction";
 
 describe("withDefaultStateReducer", () => {
@@ -7,7 +7,7 @@ describe("withDefaultStateReducer", () => {
     const testDefaultState = {};
     const reducer = jest.fn();
     const testAction = { type: "testAction" };
-    const enhancedReducer = withDefaultStateReducer(testDefaultState, reducer);
+    const enhancedReducer = withDefaultStateToReduxReducer(testDefaultState, reducer);
 
     // Act
     enhancedReducer(undefined, testAction);
@@ -23,7 +23,7 @@ describe("withDefaultStateReducer", () => {
     const returnedState = {};
     reducer.mockReturnValue(returnedState);
     const testAction = { type: "testAction" };
-    const enhancedReducer = withDefaultStateReducer(testDefaultState, reducer);
+    const enhancedReducer = withDefaultStateToReduxReducer(testDefaultState, reducer);
 
     // Act
     const result = enhancedReducer({}, testAction);
