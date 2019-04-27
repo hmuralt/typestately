@@ -3,7 +3,14 @@ import RouteAction, { isRouteAction } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import DefaultStateReducer from "./DefaultStateReducer";
 
-export function createReducer<TState, TActionType>() {
+export interface ExtensibleReducer<TState, TActionType> extends Reducer<TState, Action<TActionType>> {
+  handling<TAction extends Action<TActionType>>(
+    type: TActionType,
+    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
+  ): ExtensibleReducer<TState, TActionType>;
+}
+
+export function createReducer<TState, TActionType>(): ExtensibleReducer<TState, TActionType> {
   const reducerFunctions = new Map<TActionType, Reducer<Readonly<TState>, Action<TActionType>>>();
 
   function handling<TAction extends Action<TActionType>>(
