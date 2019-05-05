@@ -10,7 +10,7 @@ export interface ExtensibleReducer<TState, TActionType> extends Reducer<TState, 
   ): ExtensibleReducer<TState, TActionType>;
 }
 
-export function createReducer<TState, TActionType>(): ExtensibleReducer<TState, TActionType> {
+export function createExtensibleReducer<TState, TActionType>(): ExtensibleReducer<TState, TActionType> {
   const reducerFunctions = new Map<TActionType, Reducer<Readonly<TState>, Action<TActionType>>>();
 
   function handling<TAction extends Action<TActionType>>(

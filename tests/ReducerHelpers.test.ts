@@ -1,4 +1,4 @@
-import { withDefaultStateToReduxReducer, withRouteReducer, createReducer } from "../src/ReducerHelpers";
+import { withDefaultStateToReduxReducer, withRouteReducer, createExtensibleReducer } from "../src/ReducerHelpers";
 import { withRoute } from "../src/RouteAction";
 
 describe("withDefaultStateReducer", () => {
@@ -260,7 +260,7 @@ describe("combineToReducer created reducer", () => {
     // Arrange
     const testState = {};
     const testAction = { type: "testAction" };
-    const reducer = createReducer<{}, string>().handling("testAction", testReducer);
+    const reducer = createExtensibleReducer<{}, string>().handling("testAction", testReducer);
 
     // Act
     const result = reducer(testState, testAction);
@@ -274,7 +274,7 @@ describe("combineToReducer created reducer", () => {
       // Arrange
       const testState = {};
       const testAction = { type: "testAnotherAction" };
-      const reducer = createReducer<{}, string>().handling("testAction", testReducer);
+      const reducer = createExtensibleReducer<{}, string>().handling("testAction", testReducer);
 
       // Act
       const result = reducer(testState, testAction);
