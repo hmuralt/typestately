@@ -34,6 +34,7 @@ const {
   mockStatePublisher,
   resetMocks
 } = createHubMocks();
+const testCombinedReducer = (state: typeof testDefaultState) => state;
 
 describe("StateContext", () => {
   beforeEach(() => {
@@ -46,6 +47,7 @@ describe("StateContext", () => {
       (withDefaultStateToReduxReducer as jest.Mock).mockReturnValue(testDefaultStateReducer);
       (withRouteReducer as jest.Mock).mockClear();
       (withRouteReducer as jest.Mock).mockReturnValue(testRouteReducer);
+      (combineReducers as jest.Mock).mockReturnValue(testCombinedReducer);
     });
 
     describe("without reducer", () => {
@@ -74,11 +76,12 @@ describe("StateContext", () => {
 
         // Assert
         expect(withDefaultStateToReduxReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
+        expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testDefaultStateReducer });
         expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
           type: StateReportType.Registration,
           parentContextId: testParentContextId,
           key: testKey,
-          reducer: testDefaultStateReducer
+          reducer: testCombinedReducer
         });
       });
     });
@@ -98,11 +101,12 @@ describe("StateContext", () => {
           testDefaultStateReducer,
           testStateBuildingBlockWithRoutingOptions.routingOptions
         );
+        expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testRouteReducer });
         expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
           type: StateReportType.Registration,
           parentContextId: testParentContextId,
           key: testKey,
-          reducer: testRouteReducer
+          reducer: testCombinedReducer
         });
       });
     });
@@ -113,8 +117,6 @@ describe("StateContext", () => {
       // Arrange
       const subStateKey = "substate1";
       const stateContext = createStateContext(testStateBuildingBlock, mockHub);
-      const combinedReducer = (state: typeof testDefaultState) => state;
-      (combineReducers as jest.Mock).mockReturnValue(combinedReducer);
 
       // Act
       mockStateReportPublisher.publish({
@@ -130,7 +132,7 @@ describe("StateContext", () => {
         type: StateReportType.Registration,
         parentContextId: testParentContextId,
         key: testKey,
-        reducer: combinedReducer
+        reducer: testCombinedReducer
       });
     });
 
@@ -186,11 +188,12 @@ describe("StateContext", () => {
       });
 
       // Assert
+      expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testDefaultStateReducer });
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
         type: StateReportType.Registration,
         parentContextId: testParentContextId,
         key: testKey,
-        reducer: testDefaultStateReducer
+        reducer: testCombinedReducer
       });
     });
   });
@@ -207,7 +210,7 @@ describe("StateContext", () => {
     // Arrange
     const newState = { value: 1 };
     const parentContextState = {
-      [testKey]: newState
+      [testKey]: { [testStateKey]: newState }
     };
     const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 
@@ -237,7 +240,7 @@ describe("StateContext", () => {
     // Arrange
     const newState = { value: 1 };
     const parentContextState = {
-      [testKey]: newState
+      [testKey]: { [testStateKey]: newState }
     };
     const stateContext = createStateContext(testStateBuildingBlock, mockHub);
 

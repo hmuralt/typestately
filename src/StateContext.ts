@@ -1,6 +1,6 @@
 import { Reducer, combineReducers, Action, ReducersMapObject } from "redux";
-import { Observable, combineLatest, BehaviorSubject } from "rxjs";
-import { filter, map, distinctUntilChanged, takeUntil, startWith, scan } from "rxjs/operators";
+import { Observable, BehaviorSubject } from "rxjs";
+import { filter, map, distinctUntilChanged, takeUntil, scan } from "rxjs/operators";
 import * as shallowEqual from "shallowequal";
 import { withRoute } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
@@ -27,13 +27,11 @@ export interface StateBuildingBlock<TState, TActionType> {
 
 interface StateReport {
   reducers: ReducersMapObject;
-  isSingleLevelStateOnly: boolean;
 }
 
 interface BaseObservables {
   stateReport$: Observable<StateReport>;
   contextState$: Observable<{}>;
-  isSingleLevelStateOnly$: Observable<boolean>;
   isDestroyed$: Observable<boolean>;
 }
 
@@ -109,13 +107,11 @@ function getScopedSetupFunctions<TState, TActionType>(
     createBaseObservables(contextId: string): BaseObservables {
       const stateReport$ = this.createStateReport$(contextId);
       const contextState$ = this.createContextState$();
-      const isSingleLevelStateOnly$ = this.createIsSingleLevelStateOnly$(stateReport$);
       const isDestroyed$ = this.createIsDestroyed$(contextId);
 
       return {
         stateReport$,
         contextState$,
-        isSingleLevelStateOnly$,
         isDestroyed$
       };
     },
@@ -126,27 +122,15 @@ function getScopedSetupFunctions<TState, TActionType>(
         scan<StateReportNotification, StateReport>(
           (stateReport, notification) => {
             const reducers = updateReducers(stateReport.reducers, notification);
-            const keys = Object.keys(reducers);
-            const isSingleLevelStateOnly = keys.length === 0 || (keys.length === 1 && keys[0] === stateKey);
 
             return {
-              reducers,
-              isSingleLevelStateOnly
+              reducers
             };
           },
           {
-            reducers: {},
-            isSingleLevelStateOnly: true
+            reducers: {}
           }
         )
-      );
-    },
-
-    createIsSingleLevelStateOnly$(StateReport$: Observable<StateReport>) {
-      return StateReport$.pipe(
-        map(({ isSingleLevelStateOnly }) => isSingleLevelStateOnly),
-        startWith(true),
-        distinctUntilChanged()
       );
     },
 
@@ -169,46 +153,44 @@ function getScopedSetupFunctions<TState, TActionType>(
     },
 
     setupStateRegistrationPublishing(baseObservables: BaseObservables) {
-      baseObservables.stateReport$
-        .pipe(takeUntil(baseObservables.isDestroyed$))
-        .subscribe(({ reducers, isSingleLevelStateOnly }) => {
-          let stateContextReducer;
+      baseObservables.stateReport$.pipe(takeUntil(baseObservables.isDestroyed$)).subscribe(({ reducers }) => {
+        const stateContextReducer = Object.keys(reducers).length > 0 ? combineReducers(reducers) : undefined;
 
-          if (Object.keys(reducers).length > 0) {
-            stateContextReducer = isSingleLevelStateOnly ? reducers[stateKey] : combineReducers(reducers);
-          }
-
-          stateReportPublisher.publish({
-            type: StateReportType.Registration,
-            parentContextId: parentContextId,
-            key,
-            reducer: stateContextReducer
-          });
+        stateReportPublisher.publish({
+          type: StateReportType.Registration,
+          parentContextId: parentContextId,
+          key,
+          reducer: stateContextReducer
         });
+      });
     },
 
     setupStatePublishing(contextId: string, baseObservables: BaseObservables) {
-      combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
-        .pipe(takeUntil(baseObservables.isDestroyed$))
-        .subscribe(([state, isSingleLevelStateOnly]) => {
-          if (isSingleLevelStateOnly) {
-            return;
-          }
+      baseObservables.contextState$.pipe(takeUntil(baseObservables.isDestroyed$)).subscribe((contextState) => {
+        if (contextState === undefined) {
+          return;
+        }
 
-          statePublisher.publish({
-            contextId,
-            state
-          });
+        const keys = Object.keys(contextState);
+        const isSingleLevelStateOnly = keys.length === 0 || (keys.length === 1 && keys[0] === stateKey);
+        if (isSingleLevelStateOnly) {
+          return;
+        }
+
+        statePublisher.publish({
+          contextId,
+          state: contextState
         });
+      });
     },
 
     createStateSubject(baseObservables: BaseObservables) {
       const stateSubject = new BehaviorSubject(defaultState);
 
-      combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
+      baseObservables.contextState$
         .pipe(
-          map(([contextState, isSingleLevelStateOnly]) => {
-            const state = isSingleLevelStateOnly ? contextState : contextState[stateKey];
+          map((contextState) => {
+            const state = contextState !== undefined ? contextState[stateKey] : undefined;
             return state !== undefined ? state : defaultState;
           }),
           distinctUntilChanged(shallowEqual),
