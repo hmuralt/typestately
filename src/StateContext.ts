@@ -208,7 +208,8 @@ function getScopedSetupFunctions<TState, TActionType>(
       combineLatest(baseObservables.contextState$, baseObservables.isSingleLevelStateOnly$)
         .pipe(
           map(([contextState, isSingleLevelStateOnly]) => {
-            return isSingleLevelStateOnly ? contextState : contextState[stateKey];
+            const state = isSingleLevelStateOnly ? contextState : contextState[stateKey];
+            return state !== undefined ? state : defaultState;
           }),
           distinctUntilChanged(shallowEqual),
           takeUntil(baseObservables.isDestroyed$)

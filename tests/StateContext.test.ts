@@ -259,6 +259,31 @@ describe("StateContext", () => {
     });
   });
 
+  describe("when parent state doesn't contain key", () => {
+    it("publishes the default state", (done) => {
+      // Arrange
+      const parentContextState = {};
+      const stateContext = createStateContext(testStateBuildingBlock, mockHub);
+
+      stateContext.state$
+        .pipe(
+          skip(1),
+          take(1)
+        )
+        .subscribe((state) => {
+          // Assert
+          expect(state).toEqual(testDefaultState);
+          done();
+        });
+
+      // Act
+      mockStatePublisher.publish({
+        contextId: testParentContextId,
+        state: parentContextState
+      });
+    });
+  });
+
   it("publishes only distinct states", () => {
     // Arrange
     const newState = { value: 1 };
