@@ -1,13 +1,15 @@
-typestately
-===========
-Recomposed approach of using redux with TypeScript in a react app. An idea showing how you can deal with state management using redux.  
+# typestately
+
+Recomposed approach of using redux with TypeScript in a react app. An idea showing how you can deal with state management using redux.
+
 ## Some goals
-* Reduce needed type annotation by making use of type inference
-* Reduce boilerplate code 
-* Encapsulate state details/concerns (e.g. key used for a reducer in the stores state object) in one place
-* Easy way to plug new parts of global state in and out
-* Support code-splitting
-* Support multiple stores
+
+- Reduce needed type annotation by making use of type inference
+- Reduce boilerplate code
+- Encapsulate state details/concerns (e.g. key used for a reducer in the stores state object) in one place
+- Easy way to plug new parts of global state in and out
+- Support code-splitting
+- Support multiple stores
 
 ## Examples/HowTo
 
@@ -15,25 +17,30 @@ A complete example can be found here: https://github.com/hmuralt/typestately-exa
 
 ### Store
 
-This is an example of how stores could be setup, registered and tracked by id.
+This is an example of how stores could be setup and registered.
 
-_StoreIds.ts_
+_StoreContexts.ts_
+
 ```tsx
-import { setupMainStore } from "./StoreSetups";
+import { setupMainStoreContext } from "./StoreContextSetups";
 
-const storeIds = {
-    Main: setupMainStore()
+const storeContexts = {
+  Main: setupMainStoreContext()
 };
 
-export default storeIds;
+export default storeContexts;
 ```
 
-_StoreSetup.ts_
-```tsx
-export function setupMainStore() {
-    const store = createStore((state) => state);
+_StoreContextSetups.ts_
 
-    return CoreRegistry.registerStore(store, {});
+```tsx
+import { createStore } from "redux";
+import { createStoreContext } from "typestately";
+
+export function setupMainStoreContext() {
+  const store = createStore((state) => state || {});
+
+  return createStoreContext(store, {});
 }
 ```
 
@@ -42,90 +49,98 @@ export function setupMainStore() {
 #### State
 
 _CounterState.ts_
+
 ```tsx
 export default interface State {
-    value: number;
-    clicked: Date;
+  value: number;
+  clicked: Date;
 }
 
 export const defaultState: State = {
-    value: 0,
-    clicked: new Date()
+  value: 0,
+  clicked: new Date()
 };
 ```
 
 #### Actions
 
 _CounterActions.ts_
+
 ```tsx
+import { Action } from "redux";
+
 export enum ActionType {
-    Increment = "INCREMENT",
-    Decrement = "DECREMENT"
+  Increment = "INCREMENT",
+  Decrement = "DECREMENT"
 }
 
-export interface ChangeAction extends ReduxAction<ActionType> {
-    type: ActionType;
-    clicked: Date;
+export interface ChangeAction extends Action<ActionType> {
+  type: ActionType;
+  clicked: Date;
 }
 ```
 
 #### State handler
 
 _CounterStateHandler.ts_
+
 ```tsx
-@DecoratedStateHandler
+import { StateHandler } from "typestately";
+import Status from "components/Loader/State/Status";
+import LoaderStateHandler from "components/Loader/State/LoaderStateHandler";
+import { ChangeAction, ActionType } from "./CounterActions";
+import State, { defaultState } from "./CounterState";
+
 class CounterStateHandler extends StateHandler<State, ActionType> {
+  @StateHandler.nested
+  public readonly loaderStateHandler: LoaderStateHandler;
 
-    constructor() {
-        super("counter", defaultState);
-    }
+  constructor(loaderStateHandler: LoaderStateHandler) {
+    super("counter", defaultState);
 
-    public dispatchIncrement(clicked: Date) {
-        this.dispatch<ChangeAction>({
-            type: ActionType.Increment,
-            clicked
-        });
-    }
+    this.loaderStateHandler = loaderStateHandler;
+  }
 
-    public dispatchDecrement(clicked: Date) {
-        this.dispatch<ChangeAction>({
-            type: ActionType.Decrement,
-            clicked
-        });
-    }
+  public increment(clicked: Date) {
+    this.dispatch<ChangeAction>({
+      type: ActionType.Increment,
+      clicked
+    });
+  }
 
-    public incrementAsync(clicked: Date) {
-        return new Promise<void>((resolve) => {
-            window.setTimeout(
-                () => {
-                    this.dispatchIncrement(clicked);
-                    resolve();
-                },
-                2000
-            );
-        });
-    }
+  public decrement(clicked: Date) {
+    this.dispatch<ChangeAction>({
+      type: ActionType.Decrement,
+      clicked
+    });
+  }
 
-    @Reducer<State, ActionType>(ActionType.Increment)
-    protected increment(state: State, action: ChangeAction) {
-        return {
-            value: state.value + 1,
-            clicked: action.clicked
-        };
-    }
+  public incrementAsync(clicked: Date) {
+    this.loaderStateHandler.setStatus(Status.Updating);
+    window.setTimeout(() => {
+      this.increment(clicked);
+      this.loaderStateHandler.setStatus(Status.Done);
+    }, 2000);
+  }
 
-    @Reducer<State, ActionType>(ActionType.Decrement)
-    protected decrement(state: State, action: ChangeAction) {
-        return {
-            value: state.value - 1,
-            clicked: action.clicked
-        };
-    }
+  @StateHandler.reducer<State, ActionType>(ActionType.Increment)
+  protected reduceIncrement(state: State, action: ChangeAction) {
+    return {
+      value: state.value + 1,
+      clicked: action.clicked
+    };
+  }
+
+  @StateHandler.reducer<State, ActionType>(ActionType.Decrement)
+  protected reduceDecrement(state: State, action: ChangeAction) {
+    return {
+      value: state.value - 1,
+      clicked: action.clicked
+    };
+  }
 }
-
-const counterStateHandler = new CounterStateHandler();
-
-registerOnStore(storeIds.Main, counterStateHandler);
+// Ideally managed by IOC container...
+const counterStateHandler = new CounterStateHandler(new LoaderStateHandler());
 
 export default counterStateHandler;
 ```
@@ -133,72 +148,76 @@ export default counterStateHandler;
 #### Component
 
 _Counter.tsx_
+
 ```tsx
+import * as React from "react";
+
 export interface Props {
-    value: number;
-    clicked: Date;
-    onIncrement: (clicked: Date) => void;
-    onIncrementAsync: (clicked: Date) => Promise<void>;
-    onDecrement: (clicked: Date) => void;
+  value: number;
+  clicked: Date;
+  onIncrement: (clicked: Date) => void;
+  onIncrementAsync: (clicked: Date) => void;
+  onDecrement: (clicked: Date) => void;
 }
 
 export default class Counter extends React.Component<Props> {
+  constructor(props: Props) {
+    super(props);
 
-    constructor(props: Props) {
-        super(props);
+    this.increment = this.increment.bind(this);
+    this.incrementAsync = this.incrementAsync.bind(this);
+    this.decrement = this.decrement.bind(this);
+  }
 
-        this.increment = this.increment.bind(this);
-        this.incrementAsync = this.incrementAsync.bind(this);
-        this.decrement = this.decrement.bind(this);
-    }
+  public render() {
+    return (
+      <div>
+        <p>
+          Value: {this.props.value} (clicked: {this.props.clicked.toLocaleString()})
+        </p>
+        <p>
+          <button onClick={this.decrement}>-</button>
+          <button onClick={this.increment}>+</button>
+        </p>
+        <p>
+          <button onClick={this.incrementAsync}>+ (async)</button>
+        </p>
+      </div>
+    );
+  }
 
-    public render() {
-        return (
-            <div>
-                <p>Value: {this.props.value} (clicked: {this.props.clicked.toLocaleString()})</p>
-                <p>
-                    <button onClick={this.increment}> + </button>
-                    <button onClick={this.decrement}> - </button>
-                </p>
-                <p>
-                    <button onClick={this.incrementAsync}> + (async) </button>
-                </p>
-            </div>
-        );
-    }
+  private increment() {
+    this.props.onIncrement(new Date());
+  }
 
-    private increment() {
-        this.props.onIncrement(new Date());
-    }
+  private incrementAsync() {
+    this.props.onIncrementAsync(new Date());
+  }
 
-    private incrementAsync() {
-        this.props
-            .onIncrementAsync(new Date())
-            .then(() => {
-                console.log("async done!")
-            });
-    }
-
-    private decrement() {
-        this.props.onDecrement(new Date());
-    }
+  private decrement() {
+    this.props.onDecrement(new Date());
+  }
 }
 ```
 
 #### Container
 
 _Counter.ts_
+
 ```tsx
-export default withStateToProps<State, Props>(
-    counterStateHandler.stateProvider,
-    (counterState) => {
-        return {
-            value: counterState.value,
-            clicked: counterState.clicked,
-            onIncrement: (clicked: Date) => counterStateHandler.dispatchIncrement(clicked),
-            onIncrementAsync: (clicked: Date) => counterStateHandler.incrementAsync(clicked),
-            onDecrement: (clicked: Date) => counterStateHandler.dispatchDecrement(clicked)
-        };
-    }
+counterStateHandler.attachTo(storeContexts.Main.hub);
+
+export default withStateToProps(
+  counterStateHandler.state,
+  counterStateHandler.state$,
+  (counterState): Props => {
+    return {
+      value: counterState.value,
+      clicked: counterState.clicked,
+      onIncrement: (clicked: Date) => counterStateHandler.increment(clicked),
+      onIncrementAsync: (clicked: Date) => counterStateHandler.incrementAsync(clicked),
+      onDecrement: (clicked: Date) => counterStateHandler.decrement(clicked)
+    };
+  }
 )(Counter);
 ```
