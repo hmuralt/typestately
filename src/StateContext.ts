@@ -25,12 +25,8 @@ export interface StateBuildingBlock<TState, TActionType> {
   parentContextId: string;
 }
 
-interface StateReport {
-  reducers: ReducersMapObject;
-}
-
 interface BaseObservables {
-  stateReport$: Observable<StateReport>;
+  reducers$: Observable<ReducersMapObject>;
   contextState$: Observable<{}>;
   isDestroyed$: Observable<boolean>;
 }
@@ -105,32 +101,23 @@ function getScopedSetupFunctions<TState, TActionType>(
     },
 
     createBaseObservables(contextId: string): BaseObservables {
-      const stateReport$ = this.createStateReport$(contextId);
+      const reducers$ = this.createReducers$(contextId);
       const contextState$ = this.createContextState$();
       const isDestroyed$ = this.createIsDestroyed$(contextId);
 
       return {
-        stateReport$,
+        reducers$,
         contextState$,
         isDestroyed$
       };
     },
 
-    createStateReport$(contextId: string) {
+    createReducers$(contextId: string) {
       return stateReportPublisher.notification$.pipe(
         filter((notification) => notification.parentContextId === contextId),
-        scan<StateReportNotification, StateReport>(
-          (stateReport, notification) => {
-            const reducers = updateReducers(stateReport.reducers, notification);
-
-            return {
-              reducers
-            };
-          },
-          {
-            reducers: {}
-          }
-        )
+        scan<StateReportNotification, ReducersMapObject>((reducers, notification) => {
+          return updateReducers(reducers, notification);
+        }, {})
       );
     },
 
@@ -153,7 +140,7 @@ function getScopedSetupFunctions<TState, TActionType>(
     },
 
     setupStateRegistrationPublishing(baseObservables: BaseObservables) {
-      baseObservables.stateReport$.pipe(takeUntil(baseObservables.isDestroyed$)).subscribe(({ reducers }) => {
+      baseObservables.reducers$.pipe(takeUntil(baseObservables.isDestroyed$)).subscribe((reducers) => {
         const stateContextReducer = Object.keys(reducers).length > 0 ? combineReducers(reducers) : undefined;
 
         stateReportPublisher.publish({
@@ -190,8 +177,17 @@ function getScopedSetupFunctions<TState, TActionType>(
       baseObservables.contextState$
         .pipe(
           map((contextState) => {
-            const state = contextState !== undefined ? contextState[stateKey] : undefined;
-            return state !== undefined ? state : defaultState;
+            let state;
+
+            if (contextState === undefined) {
+              state = defaultState;
+            } else if (contextState[stateKey] === undefined) {
+              state = contextState;
+            } else {
+              state = contextState[stateKey];
+            }
+
+            return state;
           }),
           distinctUntilChanged(shallowEqual),
           takeUntil(baseObservables.isDestroyed$)

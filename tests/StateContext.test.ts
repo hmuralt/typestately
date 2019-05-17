@@ -67,6 +67,44 @@ describe("StateContext", () => {
           reducer: undefined
         });
       });
+
+      it("provides the default state", () => {
+        // Arrange
+        const testStateBuildingBlockWithoutReducer = { ...testStateBuildingBlock, reducer: undefined };
+
+        // Act
+        const stateContext = createStateContext(testStateBuildingBlockWithoutReducer, mockHub);
+
+        // Assert
+        expect(stateContext.state).toEqual(testDefaultState);
+      });
+
+      it("publishes the updated state as is", (done) => {
+        // Arrange
+        const testStateBuildingBlockWithoutReducer = { ...testStateBuildingBlock, reducer: undefined };
+        const newState = { value: 1 };
+        const parentContextState = {
+          [testKey]: newState
+        };
+        const stateContext = createStateContext(testStateBuildingBlockWithoutReducer, mockHub);
+
+        stateContext.state$
+          .pipe(
+            skip(1),
+            take(1)
+          )
+          .subscribe((state) => {
+            // Assert
+            expect(state).toEqual(newState);
+            done();
+          });
+
+        // Act
+        mockStatePublisher.publish({
+          contextId: testParentContextId,
+          state: parentContextState
+        });
+      });
     });
 
     describe("with reducer", () => {
