@@ -79,6 +79,10 @@ export default abstract class StateHandler<TState, TActionType> {
   public detach() {
     this.detachNestedStateHandlers();
 
+    if (this.stateContext === this.detachedStateContext) {
+      return;
+    }
+
     this.stateContext.destroy();
     this.stateContext = this.detachedStateContext;
   }
