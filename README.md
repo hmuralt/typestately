@@ -1,6 +1,6 @@
 # typestately
 
-Recomposed approach of using redux with TypeScript in a react app. An idea showing how you can deal with state management using redux.
+Recomposed approach of using redux with TypeScript. An idea showing how you can deal with state management using redux.
 
 ## Some goals
 
