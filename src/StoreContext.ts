@@ -14,7 +14,7 @@ export const storeContextId = "store";
 
 interface StateReport {
   reducers: ReducersMapObject;
-  isUnchanged: boolean;
+  isChanged: boolean;
 }
 
 export function createStoreContext<TStore>(
@@ -76,7 +76,7 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
             if (notification.type === StateReportType.Registration && notification.reducer === undefined) {
               return {
                 ...stateReport,
-                isUnchanged: true
+                isChanged: false
               };
             }
 
@@ -84,12 +84,12 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
 
             return {
               reducers,
-              isUnchanged: false
+              isChanged: true
             };
           },
           {
             reducers: initialReducers,
-            isUnchanged: false
+            isChanged: true
           }
         )
       );
@@ -108,7 +108,7 @@ function getScopedSetupFunctions<TStore>(store: Store<TStore>, initialReducers: 
 
     setupReducerReplacing(contextId: string, stateReport$: Observable<StateReport>, isDestroyed$: Observable<boolean>) {
       stateReport$.pipe(takeUntil(isDestroyed$)).subscribe((stateReport) => {
-        if (stateReport.isUnchanged) {
+        if (!stateReport.isChanged) {
           this.publishState(contextId);
           return;
         }
