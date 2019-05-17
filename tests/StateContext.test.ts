@@ -47,6 +47,7 @@ describe("StateContext", () => {
       (withDefaultStateToReduxReducer as jest.Mock).mockReturnValue(testDefaultStateReducer);
       (withRouteReducer as jest.Mock).mockClear();
       (withRouteReducer as jest.Mock).mockReturnValue(testRouteReducer);
+      (combineReducers as jest.Mock).mockClear();
       (combineReducers as jest.Mock).mockReturnValue(testCombinedReducer);
     });
 
