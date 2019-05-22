@@ -1,13 +1,17 @@
 import * as React from "react";
 import { Observable, Subscription } from "rxjs";
 
+export interface StateProvider<TState> {
+  state: TState;
+  state$: Observable<TState>;
+}
+
 interface State<TState> {
   content: TState;
 }
 
 export default function withStateToProps<TState, TProps, TOwnProps = {}>(
-  defaultState: TState,
-  state$: Observable<TState>,
+  stateProvider: StateProvider<TState>,
   stateToProps: (state: TState, ownProps: TOwnProps) => TProps
 ): (Component: React.ComponentType<TProps>) => React.ComponentClass<TOwnProps> {
   return (Component: React.ComponentType<TProps>) => {
@@ -18,14 +22,14 @@ export default function withStateToProps<TState, TProps, TOwnProps = {}>(
         super(props);
 
         this.state = {
-          content: defaultState
+          content: stateProvider.state
         };
 
         this.onStateChanged = this.onStateChanged.bind(this);
       }
 
       public componentDidMount() {
-        this.subscription = state$.subscribe(this.onStateChanged);
+        this.subscription = stateProvider.state$.subscribe(this.onStateChanged);
       }
 
       public render() {
