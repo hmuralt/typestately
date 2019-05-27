@@ -4,7 +4,7 @@ import { createStateContext, StateContext } from "./StateContext";
 import { Hub } from "./Hub";
 import { storeContextId } from "./StoreContext";
 import DefaultStateReducer from "./DefaultStateReducer";
-import { withDefaultStateToReduxReducer, ExtensibleReducer } from "./ReducerHelpers";
+import { withDefaultStateToReduxReducer } from "./ReducerHelpers";
 
 export interface AttachableStateDefinition<TState, TActionType> {
   attachTo(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
