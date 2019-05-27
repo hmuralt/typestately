@@ -4,7 +4,7 @@ import { filter, map, distinctUntilChanged, takeUntil, scan } from "rxjs/operato
 import * as shallowEqual from "shallowequal";
 import { withRoute } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
-import { withDefaultStateToReduxReducer, withRouteReducer } from "./ReducerHelpers";
+import { withRouteReducer } from "./ReducerHelpers";
 import { Hub, StateReportType, StateReportNotification } from "./Hub";
 import { Destructible } from "./Destructible";
 import updateReducers from "./UpdateReducers";
@@ -214,11 +214,7 @@ function getScopedSetupFunctions<TState, TActionType>(
       let finalReducer;
 
       if (reducer !== undefined) {
-        const defaultStateReducer = withDefaultStateToReduxReducer(defaultState, reducer);
-        finalReducer =
-          routingOptions !== undefined
-            ? withRouteReducer(contextId, defaultStateReducer, routingOptions)
-            : defaultStateReducer;
+        finalReducer = routingOptions !== undefined ? withRouteReducer(contextId, reducer, routingOptions) : reducer;
       }
 
       stateReportPublisher.publish({

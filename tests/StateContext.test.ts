@@ -1,7 +1,7 @@
 import { combineReducers } from "redux";
 import { skip, take } from "rxjs/operators";
 import { createStateContext, StateBuildingBlock } from "../src/StateContext";
-import { withDefaultStateToReduxReducer, withRouteReducer } from "../src/ReducerHelpers";
+import { withRouteReducer } from "../src/ReducerHelpers";
 import { isRouteAction } from "../src/RouteAction";
 import { createHubMocks } from "./Mocks";
 import { StateReportType } from "../src/Hub";
@@ -15,7 +15,6 @@ const testDefaultState = {
 };
 const testStateKey = "testStateKey";
 const testReducer = (state: typeof testDefaultState) => state;
-const testDefaultStateReducer = (state: typeof testDefaultState) => state;
 const testRouteReducer = (state: typeof testDefaultState) => state;
 const testParentContextId = "testParentContextId";
 const testStateBuildingBlock: StateBuildingBlock<typeof testDefaultState, string> = {
@@ -43,8 +42,6 @@ describe("StateContext", () => {
 
   describe("when created", () => {
     beforeEach(() => {
-      (withDefaultStateToReduxReducer as jest.Mock).mockClear();
-      (withDefaultStateToReduxReducer as jest.Mock).mockReturnValue(testDefaultStateReducer);
       (withRouteReducer as jest.Mock).mockClear();
       (withRouteReducer as jest.Mock).mockReturnValue(testRouteReducer);
       (combineReducers as jest.Mock).mockClear();
@@ -114,8 +111,7 @@ describe("StateContext", () => {
         createStateContext(testStateBuildingBlock, mockHub);
 
         // Assert
-        expect(withDefaultStateToReduxReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
-        expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testDefaultStateReducer });
+        expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testReducer });
         expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
           type: StateReportType.Registration,
           parentContextId: testParentContextId,
@@ -134,10 +130,9 @@ describe("StateContext", () => {
         createStateContext(testStateBuildingBlockWithRoutingOptions, mockHub);
 
         // Assert
-        expect(withDefaultStateToReduxReducer).toHaveBeenCalledWith(testDefaultState, testReducer);
         expect(withRouteReducer).toHaveBeenCalledWith(
           expect.anything(),
-          testDefaultStateReducer,
+          testReducer,
           testStateBuildingBlockWithRoutingOptions.routingOptions
         );
         expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testRouteReducer });
@@ -227,7 +222,7 @@ describe("StateContext", () => {
       });
 
       // Assert
-      expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testDefaultStateReducer });
+      expect(combineReducers).toHaveBeenCalledWith({ [testStateKey]: testReducer });
       expect(mockStateReportPublisher.publish).toHaveBeenCalledWith({
         type: StateReportType.Registration,
         parentContextId: testParentContextId,
