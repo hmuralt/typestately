@@ -3,7 +3,7 @@ import RouteAction, { isRouteAction } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import DefaultStateReducer from "./DefaultStateReducer";
 
-export interface ExtensibleReducer<TState, TActionType> extends Reducer<TState, Action<TActionType>> {
+export interface ExtensibleReducer<TState, TActionType> extends DefaultStateReducer<TState, Action<TActionType>> {
   handling<TAction extends Action<TActionType>>(
     type: TActionType,
     reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
@@ -38,7 +38,7 @@ export function createExtensibleReducer<TState, TActionType>(): ExtensibleReduce
 
 export function withDefaultStateToReduxReducer<TState, TActionType>(
   defaultState: TState,
-  reducer: Reducer<TState, Action<TActionType>>
+  reducer: DefaultStateReducer<Readonly<TState>, Action<TActionType>>
 ): Reducer<TState, Action<TActionType>> {
   return (state: TState | undefined = defaultState, action: Action<TActionType>) => {
     return reducer(state, action);
