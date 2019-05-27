@@ -4,7 +4,7 @@ import { createStateContext, StateContext } from "./StateContext";
 import { Hub } from "./Hub";
 import { storeContextId } from "./StoreContext";
 import DefaultStateReducer from "./DefaultStateReducer";
-import { withDefaultStateToReduxReducer } from "./ReducerHelpers";
+import { withDefaultStateToReduxReducer, ExtensibleReducer } from "./ReducerHelpers";
 
 export interface AttachableStateDefinition<TState, TActionType> {
   attachTo(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
@@ -30,7 +30,7 @@ export function createStateDefinition<TState = {}, TActionType = any>(
     ) {
       const defaultStateReducer =
         reducer !== undefined ? withDefaultStateToReduxReducer(defaultState, reducer) : undefined;
-      const defaultRoutingOptions = routingOptions !== undefined ? routingOptions : new Map();
+      const defaultRoutingOptions = routingOptions || new Map<TActionType, RoutingOption>();
 
       return {
         attachTo(hub: Hub, parentContextId: string = storeContextId) {
