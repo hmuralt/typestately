@@ -4,20 +4,29 @@ import RoutingOption from "./RoutingOption";
 import DefaultStateReducer from "./DefaultStateReducer";
 
 export interface ExtensibleReducer<TState, TActionType> extends DefaultStateReducer<TState, Action<TActionType>> {
+  routingOptions: Map<TActionType, RoutingOption>;
   handling<TAction extends Action<TActionType>>(
     type: TActionType,
-    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
+    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>,
+    routingOption?: RoutingOption
   ): ExtensibleReducer<TState, TActionType>;
 }
 
 export function createExtensibleReducer<TState, TActionType>(): ExtensibleReducer<TState, TActionType> {
   const reducerFunctions = new Map<TActionType, Reducer<Readonly<TState>, Action<TActionType>>>();
+  const routingOptions = new Map<TActionType, RoutingOption>();
 
   function handling<TAction extends Action<TActionType>>(
     type: TActionType,
-    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>
+    reducerFunction: DefaultStateReducer<Readonly<TState>, TAction>,
+    routingOption?: RoutingOption
   ) {
     reducerFunctions.set(type, reducerFunction);
+
+    if (routingOption !== undefined) {
+      routingOptions.set(type, routingOption);
+    }
+
     return reducer;
   }
 
@@ -32,6 +41,7 @@ export function createExtensibleReducer<TState, TActionType>(): ExtensibleReduce
   }
 
   reducer.handling = handling;
+  reducer.routingOptions = routingOptions;
 
   return reducer;
 }

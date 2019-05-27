@@ -247,7 +247,7 @@ describe("withRouteReducer", () => {
   });
 });
 
-describe("combineToReducer created reducer", () => {
+describe("ExtensibleReducer", () => {
   const returnedState = {};
   let testReducer: jest.Mock;
 
@@ -282,5 +282,20 @@ describe("combineToReducer created reducer", () => {
       // Assert
       expect(result).toBe(testState);
     });
+  });
+
+  it("provides set routing options", () => {
+    // Arrange
+    const testRoutinOption = {
+      isForOtherInstances: true
+    };
+    const reducer = createExtensibleReducer<{}, string>().handling("testAction", testReducer, testRoutinOption);
+
+    // Act
+    const result = reducer.routingOptions;
+
+    // Assert
+    expect(result.size).toBe(1);
+    expect(result.get("testAction")).toEqual(testRoutinOption);
   });
 });
