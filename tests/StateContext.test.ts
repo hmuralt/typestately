@@ -105,7 +105,7 @@ describe("StateContext", () => {
     });
 
     describe("with reducer", () => {
-      it("publishes registration with reducer enhanced as default state reducer to parent", () => {
+      it("publishes registration with reducer to parent", () => {
         // Arrange
         // Act
         createStateContext(testStateBuildingBlock, mockHub);
@@ -122,7 +122,7 @@ describe("StateContext", () => {
     });
 
     describe("with reducer and routing options", () => {
-      it("publishes registration with reducer enhanced as routing default state reducer to parent", () => {
+      it("publishes registration with reducer enhanced as routing reducer to parent", () => {
         // Arrange
         const testStateBuildingBlockWithRoutingOptions = { ...testStateBuildingBlock, routingOptions: new Map() };
 
