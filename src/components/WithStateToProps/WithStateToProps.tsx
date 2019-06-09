@@ -1,10 +1,6 @@
 import * as React from "react";
-import { Observable, Subscription } from "rxjs";
-
-export interface StateProvider<TState> {
-  state: TState;
-  state$: Observable<TState>;
-}
+import { Subscription } from "rxjs";
+import StateProvider from "./StateProvider";
 
 interface State<TState> {
   content: TState;
