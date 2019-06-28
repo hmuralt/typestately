@@ -17,7 +17,7 @@ const testNestedDefaultState = "testNestedDefaultState";
 const { mockHub } = createHubMocks();
 
 describe("StateHandler", () => {
-  let testStateDefinition: StateDefinition<{}, string>;
+  let testStateDefinition: StateDefinition<{}>;
   let testAttachableStateDefinition: AttachableStateDefinition<{}, string>;
   let testStateContext: StateContext<{}, string>;
   let stateHandler: TestStateHandler;
