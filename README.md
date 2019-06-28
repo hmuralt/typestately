@@ -15,6 +15,8 @@ Recomposed approach of using redux with TypeScript. An idea showing how you can 
 
 A complete example can be found here: https://github.com/hmuralt/typestately-example
 
+It shows the usage with state handlers (class) and an alternative usage with state contexts (objects & functions).
+
 ### Store
 
 This is an example of how stores could be setup and registered.
@@ -208,8 +210,7 @@ _Counter.ts_
 counterStateHandler.attachTo(storeContexts.Main.hub);
 
 export default withStateToProps(
-  counterStateHandler.state,
-  counterStateHandler.state$,
+  counterStateHandler,
   (counterState): Props => {
     return {
       value: counterState.value,
