@@ -10,21 +10,21 @@ export interface AttachableStateDefinition<TState, TActionType> {
   attachTo(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
 }
 
-export interface StateDefinition<TState, TActionType> {
-  setReducer(
+export interface StateDefinition<TState> {
+  setReducer<TActionType>(
     reducer?: DefaultStateReducer<Readonly<TState>, Action<TActionType>>,
     routingOptions?: Map<TActionType, RoutingOption>
   ): AttachableStateDefinition<TState, TActionType>;
 }
 
-// tslint:disable-next-line: no-any
-export function createStateDefinition<TState = {}, TActionType = any>(
+export function createStateDefinition<TState = {}>(
   key: string,
   defaultState: TState,
   stateKey = "state"
-): StateDefinition<TState, TActionType> {
+): StateDefinition<TState> {
   return {
-    setReducer(
+    // tslint:disable-next-line: no-any
+    setReducer<TActionType = any>(
       reducer?: DefaultStateReducer<Readonly<TState>, Action<TActionType>>,
       routingOptions?: Map<TActionType, RoutingOption>
     ) {

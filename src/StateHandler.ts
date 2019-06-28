@@ -31,12 +31,12 @@ export default abstract class StateHandler<TState, TActionType> {
 
   private reducerFunctionProperties: ReducerPropertyDescription[];
   private nestedStateHandlerProperties: string[];
-  private stateDefinition: StateDefinition<TState, TActionType>;
+  private stateDefinition: StateDefinition<TState>;
   private detachedStateContext: StateContext<TState, TActionType>;
   private stateContext: StateContext<TState, TActionType>;
 
   constructor(key: string, defaultState: TState, stateKey = "state") {
-    this.stateDefinition = createStateDefinition<TState, TActionType>(key, defaultState, stateKey);
+    this.stateDefinition = createStateDefinition<TState>(key, defaultState, stateKey);
     this.detachedStateContext = new DetachedStateContext(key, defaultState);
     this.stateContext = this.detachedStateContext;
   }
@@ -70,7 +70,7 @@ export default abstract class StateHandler<TState, TActionType> {
     this.detach();
 
     this.stateContext = this.stateDefinition
-      .setReducer(this.getReducer(), this.getRoutingOptions())
+      .setReducer<TActionType>(this.getReducer(), this.getRoutingOptions())
       .attachTo(hub, parentContextId);
 
     this.attachNestedStateHandlers(hub, this.stateContext.id);
