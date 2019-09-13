@@ -23,7 +23,7 @@ export interface StateDefinitionWithStateKeys<TState, TStateOperations extends S
 
 export interface StateDefinitionWithActions<TState, TStateOperations extends StateOperations<TState>, TActionType> {
   setReducer(
-    reducerBuilder: ReducerBuilder<TState, TStateOperations, TActionType>,
+    reducerBuilder?: ReducerBuilder<TState, TStateOperations, TActionType>,
     routingOptions?: Map<TActionType, RoutingOption>
   ): StoreStateDefinition<TState, TStateOperations, TActionType>;
 }
