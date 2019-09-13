@@ -2,6 +2,9 @@
 
 Recomposed approach of using redux with TypeScript. An idea showing how you can deal with state management using redux.
 
+[![build status](https://img.shields.io/travis/hmuralt/typestately/master.svg?style=flat-square)](https://travis-ci.org/hmuralt/typestately)
+[![npm version](https://img.shields.io/npm/v/typestately.svg?style=flat-square)](https://www.npmjs.com/package/typestately)
+
 ## Some goals
 
 - Reduce needed type annotation by making use of type inference
