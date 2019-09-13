@@ -8,11 +8,10 @@ import { withRouteReducer } from "./ReducerHelpers";
 import { Hub, StateReportType, StateReportNotification } from "./Hub";
 import { Destructible } from "./Destructible";
 import updateReducers from "./UpdateReducers";
+import StateProvider from "./StateProvider";
 
-export interface StateContext<TState, TActionType> extends Destructible {
+export interface StateContext<TState, TActionType> extends StateProvider<TState>, Destructible {
   id: string;
-  state: TState;
-  state$: Observable<TState>;
   dispatch<TAction extends Action<TActionType>>(action: TAction, isRoutedToThisContext?: boolean): void;
 }
 
