@@ -1,12 +1,12 @@
 import { of } from "rxjs";
-import StateHandler from "../src/StateHandler";
-import { createStateDefinition, AttachableStateDefinition, StateDefinition } from "../src/StateContextBuild";
+import StateHandler from "../src/core/StateHandler";
+import { createStateDefinition, AttachableStateDefinition, StateDefinition } from "../src/core/StateContextBuild";
 import { Action } from "redux";
-import RoutingOption from "../src/RoutingOption";
+import RoutingOption from "../src/core/RoutingOption";
 import { createHubMocks } from "./Mocks";
-import { StateContext } from "../src/StateContext";
+import { StateContext } from "../src/core/StateContext";
 
-jest.mock("../src/StateContextBuild");
+jest.mock("../src/core/StateContextBuild");
 
 const testKey = "testStateHandler";
 const testDefaultState = {};

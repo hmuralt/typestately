@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Subscription } from "rxjs";
-import StateProvider from "../../StateProvider";
+import StateProvider from "../../core/StateProvider";
 
 interface State<TState> {
   content: TState;

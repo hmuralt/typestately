@@ -1,5 +1,5 @@
-import { withDefaultStateToReduxReducer, withRouteReducer, createExtensibleReducer } from "../src/ReducerHelpers";
-import { withRoute } from "../src/RouteAction";
+import { withDefaultStateToReduxReducer, withRouteReducer, createExtensibleReducer } from "../src/core/ReducerHelpers";
+import { withRoute } from "../src/core/RouteAction";
 
 describe("withDefaultStateReducer", () => {
   it("passes default state to reducer when undefined passed as state", () => {

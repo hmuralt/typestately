@@ -1,13 +1,13 @@
 import { combineReducers } from "redux";
 import { skip, take } from "rxjs/operators";
-import { createStateContext, StateBuildingBlock } from "../src/StateContext";
-import { withRouteReducer } from "../src/ReducerHelpers";
-import { isRouteAction } from "../src/RouteAction";
+import { createStateContext, StateBuildingBlock } from "../src/core/StateContext";
+import { withRouteReducer } from "../src/core/ReducerHelpers";
+import { isRouteAction } from "../src/core/RouteAction";
 import { createHubMocks } from "./Mocks";
-import { StateReportType } from "../src/Hub";
+import { StateReportType } from "../src/core/Hub";
 
 jest.mock("redux");
-jest.mock("../src/ReducerHelpers");
+jest.mock("../src/core/ReducerHelpers");
 
 const testKey = "testKey";
 const testDefaultState = {

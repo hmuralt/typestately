@@ -1,5 +1,5 @@
 import { filter } from "rxjs/operators";
-import { createDirigiblePublisher } from "../src/DirigiblePublisher";
+import { createDirigiblePublisher } from "../src/core/DirigiblePublisher";
 
 describe("createDirigiblePublisher", () => {
   describe("publish", () => {

@@ -5,7 +5,7 @@ import {
   StateReportNotification,
   StateNotification,
   Hub
-} from "../src/Hub";
+} from "../src/core/Hub";
 
 export function createDirigiblePublisherMock<TNotification>() {
   const helperSubject = new Subject<TNotification>();

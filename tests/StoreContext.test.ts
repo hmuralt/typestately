@@ -1,8 +1,8 @@
-import { createStoreContext, storeContextId } from "../src/StoreContext";
+import { createStoreContext, storeContextId } from "../src/core/StoreContext";
 import { createHubMocks } from "./Mocks";
-import { createHub, StateReportType } from "../src/Hub";
+import { createHub, StateReportType } from "../src/core/Hub";
 
-jest.mock("../src/Hub");
+jest.mock("../src/core/Hub");
 
 const {
   mockHub,

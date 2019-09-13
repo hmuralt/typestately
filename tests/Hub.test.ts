@@ -1,7 +1,7 @@
-import { createHub } from "../src/Hub";
-import { createDirigiblePublisher } from "../src/DirigiblePublisher";
+import { createHub } from "../src/core/Hub";
+import { createDirigiblePublisher } from "../src/core/DirigiblePublisher";
 
-jest.mock("../src/DirigiblePublisher");
+jest.mock("../src/core/DirigiblePublisher");
 
 describe("Hub", () => {
   describe("when destroyed", () => {
