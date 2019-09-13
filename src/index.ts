@@ -1,6 +1,6 @@
 export * from "./core/StateContext";
 export * from "./core/StoreContext";
-export * from "./core/StateContextBuild";
+export * from "./core/StateDefinition";
 export { Hub } from "./core/Hub";
 export { createExtensibleReducer } from "./core/ReducerHelpers";
 export { default as withStateToProps } from "./components/WithStateToProps/WithStateToProps";
