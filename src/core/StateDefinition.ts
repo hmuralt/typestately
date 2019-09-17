@@ -2,8 +2,7 @@ import { BehaviorSubject } from "rxjs";
 import { Action } from "redux";
 import RoutingOption from "./RoutingOption";
 import { Hub } from "./Hub";
-import DefaultStateReducer from "./DefaultStateReducer";
-import { withDefaultStateToReduxReducer } from "./ReducerHelpers";
+import { withDefaultStateToReduxReducer, DefaultStateReducerWithOptionalRoutingOptions } from "./ReducerHelpers";
 import { createStateContext, StateContext } from "./StateContext";
 import { storeContextId } from "./StoreContext";
 import StateProvider from "./StateProvider";
@@ -45,11 +44,6 @@ export interface StoreStateDefinition<TState, TActionType, TActionDispatchers ex
 
 export interface StateOperations<TState> {
   [operationKey: string]: (state: TState, ...args: any[]) => TState;
-}
-
-export interface DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType>
-  extends DefaultStateReducer<TState, Action<TActionType>> {
-  routingOptions?: Map<TActionType, RoutingOption>;
 }
 
 export interface ActionDispatchers<TActionType> {

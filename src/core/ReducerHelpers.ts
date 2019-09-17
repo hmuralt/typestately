@@ -3,7 +3,13 @@ import RouteAction, { isRouteAction } from "./RouteAction";
 import RoutingOption from "./RoutingOption";
 import DefaultStateReducer from "./DefaultStateReducer";
 
-export interface ExtensibleReducer<TState, TActionType> extends DefaultStateReducer<TState, Action<TActionType>> {
+export interface DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType>
+  extends DefaultStateReducer<TState, Action<TActionType>> {
+  routingOptions?: Map<TActionType, RoutingOption>;
+}
+
+export interface ExtensibleReducer<TState, TActionType>
+  extends DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType> {
   routingOptions: Map<TActionType, RoutingOption>;
   handling<TAction extends Action<TActionType>>(
     type: TActionType,
