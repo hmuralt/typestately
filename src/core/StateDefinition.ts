@@ -16,23 +16,28 @@ export interface StateDefinition<TState, TStateOperations extends StateOperation
 }
 
 export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>> {
-  setActions<TActionType>(
-    actionDispatchers: ActionDispatchers<TState, TStateOperations, TActionType>
-  ): StateDefinitionWithActions<TState, TStateOperations, TActionType>;
+  setActions<TActionType extends any, TActionDispatchers extends ActionDispatchers<TActionType>>(
+    actionDispatchers: TActionDispatchers
+  ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
 }
 
-export interface StateDefinitionWithActions<TState, TStateOperations extends StateOperations<TState>, TActionType> {
+export interface StateDefinitionWithActions<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>
+> {
   setReducer(
     reducerBuilder?: ReducerBuilder<TState, TStateOperations, TActionType>,
     routingOptions?: Map<TActionType, RoutingOption>
-  ): StoreStateDefinition<TState, TStateOperations, TActionType>;
+  ): StoreStateDefinition<TState, TActionType, TActionDispatchers>;
 }
 
-export interface StoreStateDefinition<TState, TStateOperations extends StateOperations<TState>, TActionType> {
+export interface StoreStateDefinition<TState, TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> {
   createStateHandler(
     hub: Hub,
     parentContextId?: string
-  ): StateContext<TState, TActionType> & HigherActionOperations<TState, TStateOperations, TActionType>;
+  ): StateContext<TState, TActionType> & HigherActionOperations<TActionType, TActionDispatchers>;
 }
 
 export interface StateOperations<TState> {
@@ -44,14 +49,9 @@ export interface DefaultStateReducerWithOptionalRoutingOptions<TState, TActionTy
   routingOptions?: Map<TActionType, RoutingOption>;
 }
 
-export type ActionDispatchers<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
-  [OperationKey in keyof TStateOperations]: (
-    dispatch: Dispatch<TActionType>,
-    ...args: ParametersWithoutState<TState, TStateOperations[OperationKey]>
-  ) => void;
-} & {
+export interface ActionDispatchers<TActionType> {
   [OperationKey: string]: (dispatch: Dispatch<TActionType>, ...args: any[]) => void;
-};
+}
 
 export type Dispatch<TActionType> = <TAction extends Action<TActionType>>(
   action: TAction,
@@ -75,9 +75,9 @@ export type ParametersWithoutState<TState, T extends (state: TState, ...args: an
   ? P
   : never;
 
-export type HigherActionOperations<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
-  [ActionKey in keyof ActionDispatchers<TState, TStateOperations, TActionType>]: (
-    ...args: ParametersWithoutDispatch<TActionType, ActionDispatchers<TState, TStateOperations, TActionType>[ActionKey]>
+export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
+  [ActionKey in keyof TActionDispatchers]: (
+    ...args: ParametersWithoutDispatch<TActionType, TActionDispatchers[ActionKey]>
   ) => void;
 };
 
@@ -147,8 +147,10 @@ function createStateDefinitionWithStateKeys<TState, TStateOperations extends Sta
   stateKey: string
 ): StateDefinitionWithStateKeys<TState, TStateOperations> {
   return {
-    setActions<TActionType = any>(actionDispatchers: ActionDispatchers<TState, TStateOperations, TActionType>) {
-      return createStateDefinitionWithActions<TState, TStateOperations, TActionType>(
+    setActions<TActionType extends any, TActionDispatchers extends ActionDispatchers<TActionType>>(
+      actionDispatchers: TActionDispatchers
+    ) {
+      return createStateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>(
         defaultState,
         stateOperations,
         key,
@@ -159,19 +161,24 @@ function createStateDefinitionWithStateKeys<TState, TStateOperations extends Sta
   };
 }
 
-function createStateDefinitionWithActions<TState, TStateOperations extends StateOperations<TState>, TActionType = any>(
+function createStateDefinitionWithActions<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>
+>(
   defaultState: TState,
   stateOperations: TStateOperations,
   key: string,
   stateKey: string,
-  actionDispatchers: ActionDispatchers<TState, TStateOperations, TActionType>
-): StateDefinitionWithActions<TState, TStateOperations, TActionType> {
+  actionDispatchers: TActionDispatchers
+): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers> {
   return {
     setReducer(
       reducerBuilder?: ReducerBuilder<TState, TStateOperations, TActionType>,
       routingOptions?: Map<TActionType, RoutingOption>
     ) {
-      return createStateDefinitionWithReducer<TState, TStateOperations, TActionType>(
+      return createStateDefinitionWithReducer<TState, TStateOperations, TActionType, TActionDispatchers>(
         defaultState,
         stateOperations,
         key,
@@ -184,15 +191,20 @@ function createStateDefinitionWithActions<TState, TStateOperations extends State
   };
 }
 
-function createStateDefinitionWithReducer<TState, TStateOperations extends StateOperations<TState>, TActionType = any>(
+function createStateDefinitionWithReducer<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>
+>(
   defaultState: TState,
   stateOperations: TStateOperations,
   key: string,
   stateKey: string,
-  actionDispatchers: ActionDispatchers<TState, TStateOperations, TActionType>,
+  actionDispatchers: TActionDispatchers,
   reducerBuilder?: ReducerBuilder<TState, TStateOperations, TActionType>,
   routingOptions?: Map<TActionType, RoutingOption>
-): StoreStateDefinition<TState, TStateOperations, TActionType> {
+): StoreStateDefinition<TState, TActionType, TActionDispatchers> {
   return {
     createStateHandler(hub: Hub, parentContextId: string = storeContextId) {
       const reducer = reducerBuilder !== undefined ? reducerBuilder(stateOperations) : undefined;
@@ -213,7 +225,7 @@ function createStateDefinitionWithReducer<TState, TStateOperations extends State
         hub
       );
 
-      const operations = getHigherActionOperations<TState, TStateOperations, TActionType>(
+      const operations = getHigherActionOperations<TActionType, TActionDispatchers>(
         actionDispatchers,
         stateContext.dispatch
       );
@@ -223,8 +235,8 @@ function createStateDefinitionWithReducer<TState, TStateOperations extends State
   };
 }
 
-function getHigherActionOperations<TState, TStateOperations extends StateOperations<TState>, TActionType>(
-  actionDispatchers: ActionDispatchers<TState, TStateOperations, TActionType>,
+function getHigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>>(
+  actionDispatchers: TActionDispatchers,
   dispatch: Dispatch<TActionType>
 ) {
   const toHigherActionOperationEnhancer = toHigherActionOperation<TActionType>(dispatch);
@@ -235,7 +247,7 @@ function getHigherActionOperations<TState, TStateOperations extends StateOperati
         [actionKey]: toHigherActionOperationEnhancer(actionDispatchers[actionKey])
       };
     },
-    {} as HigherActionOperations<TState, TStateOperations, TActionType>
+    {} as HigherActionOperations<TActionType, TActionDispatchers>
   );
 
   return higherActionOperations;
