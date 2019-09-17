@@ -44,7 +44,7 @@ export interface DefaultStateReducerWithOptionalRoutingOptions<TState, TActionTy
   routingOptions?: Map<TActionType, RoutingOption>;
 }
 
-type ActionDispatchers<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
+export type ActionDispatchers<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
   [OperationKey in keyof TStateOperations]: (
     dispatch: Dispatch<TActionType>,
     ...args: ParametersWithoutState<TState, TStateOperations[OperationKey]>
@@ -53,29 +53,29 @@ type ActionDispatchers<TState, TStateOperations extends StateOperations<TState>,
   [OperationKey: string]: (dispatch: Dispatch<TActionType>, ...args: any[]) => void;
 };
 
-type Dispatch<TActionType> = <TAction extends Action<TActionType>>(
+export type Dispatch<TActionType> = <TAction extends Action<TActionType>>(
   action: TAction,
   isRoutedToThisContext?: boolean
 ) => void;
 
-type ReducerBuilder<TState, TStateOperations extends StateOperations<TState>, TActionType> = (
+export type ReducerBuilder<TState, TStateOperations extends StateOperations<TState>, TActionType> = (
   stateOperations: TStateOperations
 ) => DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType>;
 
-type HigherStateOperations<TState, TStateOperations extends StateOperations<TState>> = {
+export type HigherStateOperations<TState, TStateOperations extends StateOperations<TState>> = {
   [OperationKey in keyof TStateOperations]: (
     ...args: ParametersWithoutState<TState, TStateOperations[OperationKey]>
   ) => void;
 };
 
-type ParametersWithoutState<TState, T extends (state: TState, ...args: any[]) => any> = T extends (
+export type ParametersWithoutState<TState, T extends (state: TState, ...args: any[]) => any> = T extends (
   state: TState,
   ...args: infer P
 ) => any
   ? P
   : never;
 
-type HigherActionOperations<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
+export type HigherActionOperations<TState, TStateOperations extends StateOperations<TState>, TActionType> = {
   [ActionKey in keyof ActionDispatchers<TState, TStateOperations, TActionType>]: (
     ...args: ParametersWithoutDispatch<TActionType, ActionDispatchers<TState, TStateOperations, TActionType>[ActionKey]>
   ) => void;
