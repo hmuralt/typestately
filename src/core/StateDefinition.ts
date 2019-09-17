@@ -12,11 +12,14 @@ import StateProvider from "./StateProvider";
 
 export interface StateDefinition<TState, TStateOperations extends StateOperations<TState>> {
   createStandaloneStateHandler(): StateProvider<TState> & HigherStateOperations<TState, TStateOperations>;
-  setStoreKey(key: string, stateKey?: string): StateDefinitionWithStateKeys<TState, TStateOperations>;
+  makeStorableUsing<TActionType extends any>(
+    key: string,
+    stateKey?: string
+  ): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType>;
 }
 
-export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>> {
-  setActions<TActionType extends any, TActionDispatchers extends ActionDispatchers<TActionType>>(
+export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType> {
+  setActions<TActionDispatchers extends ActionDispatchers<TActionType>>(
     actionDispatchers: TActionDispatchers
   ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
 }
@@ -105,8 +108,13 @@ export function createStateDefinition<TState, TStateOperations extends StateOper
 
       return Object.assign(standaloneStateContext, operations);
     },
-    setStoreKey(key: string, stateKey: string = defaultStateKey) {
-      return createStateDefinitionWithStateKeys<TState, TStateOperations>(defaultState, stateOperations, key, stateKey);
+    makeStorableUsing<TActionType extends any>(key: string, stateKey: string = defaultStateKey) {
+      return createStateDefinitionWithStateKeys<TState, TStateOperations, TActionType>(
+        defaultState,
+        stateOperations,
+        key,
+        stateKey
+      );
     }
   };
 }
@@ -140,16 +148,14 @@ function toHigherStateOperation<TState>(stateSubject: BehaviorSubject<TState>) {
   };
 }
 
-function createStateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>>(
+function createStateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType>(
   defaultState: TState,
   stateOperations: TStateOperations,
   key: string,
   stateKey: string
-): StateDefinitionWithStateKeys<TState, TStateOperations> {
+): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType> {
   return {
-    setActions<TActionType extends any, TActionDispatchers extends ActionDispatchers<TActionType>>(
-      actionDispatchers: TActionDispatchers
-    ) {
+    setActions<TActionDispatchers extends ActionDispatchers<TActionType>>(actionDispatchers: TActionDispatchers) {
       return createStateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>(
         defaultState,
         stateOperations,
