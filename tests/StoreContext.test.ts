@@ -1,3 +1,4 @@
+import { Store, AnyAction } from "redux";
 import { createStoreContext, storeContextId } from "../src/core/StoreContext";
 import { createHubMocks } from "./Mocks";
 import { createHub, StateReportType } from "../src/core/Hub";
@@ -26,7 +27,8 @@ const testOtherStoreContextId = "testOtherStoreContextId";
 const testStoreState = {};
 
 describe("StoreContext", () => {
-  let mockStore: {
+  // tslint:disable-next-line: no-any
+  let mockStore: Store<any, AnyAction> & {
     dispatch: jest.Mock;
     getState: jest.Mock;
     subscribe: jest.Mock;
@@ -44,7 +46,8 @@ describe("StoreContext", () => {
       dispatch: jest.fn(),
       getState: jest.fn(() => testStoreState),
       subscribe: mockSubscribe,
-      replaceReducer: jest.fn()
+      replaceReducer: jest.fn(),
+      [Symbol.observable]: jest.fn()
     };
 
     resetMocks();
