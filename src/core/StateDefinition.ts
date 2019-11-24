@@ -60,28 +60,19 @@ export type ReducerBuilder<TState, TStateOperations extends StateOperations<TSta
 ) => DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType>;
 
 export type HigherStateOperations<TState, TStateOperations extends StateOperations<TState>> = {
-  [OperationKey in keyof TStateOperations]: (
-    ...args: ParametersWithoutState<TState, TStateOperations[OperationKey]>
-  ) => void;
+  [OperationKey in keyof TStateOperations]: (...args: ParametersWithoutFirst<TStateOperations[OperationKey]>) => void;
 };
 
-export type ParametersWithoutState<TState, T extends (state: TState, ...args: any[]) => any> = T extends (
-  state: TState,
+export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
+  [ActionKey in keyof TActionDispatchers]: (...args: ParametersWithoutFirst<TActionDispatchers[ActionKey]>) => void;
+};
+
+type ParametersWithoutFirst<T extends (first: any, ...args: any[]) => any> = T extends (
+  first: any,
   ...args: infer P
 ) => any
   ? P
   : never;
-
-export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
-  [ActionKey in keyof TActionDispatchers]: (
-    ...args: ParametersWithoutDispatch<TActionType, TActionDispatchers[ActionKey]>
-  ) => void;
-};
-
-type ParametersWithoutDispatch<
-  TActionType,
-  T extends (dispatch: Dispatch<TActionType>, ...args: any[]) => any
-> = T extends (dispatch: Dispatch<TActionType>, ...args: infer P) => any ? P : never;
 
 export const defaultStateKey = "state";
 
