@@ -136,7 +136,7 @@ describe("StateDefinition", () => {
       // Act
       const stateHandler = stateDefinition
         .makeStorableUsing(testStoreKey)
-        .setActions({ update: testAction })
+        .setActionDispatchers({ update: testAction })
         .setReducer(testReducerBuilder)
         .createStateHandler(mockHub);
 
@@ -157,7 +157,7 @@ describe("StateDefinition", () => {
       // Act
       stateDefinition
         .makeStorableUsing(testStoreKey)
-        .setActions({ update: testAction })
+        .setActionDispatchers({ update: testAction })
         .setReducer(testReducerBuilder, testRoutingOptions)
         .createStateHandler(mockHub);
 
@@ -182,7 +182,7 @@ describe("StateDefinition", () => {
         const newTestValue = 123;
         const stateHandler = stateDefinition
           .makeStorableUsing(testStoreKey)
-          .setActions({ update: testAction })
+          .setActionDispatchers({ update: testAction })
           .setReducer(testReducerBuilder)
           .createStateHandler(mockHub);
 
