@@ -1,7 +1,7 @@
 import { Observable, combineLatest } from "rxjs";
 
 export default interface StateProvider<TState> {
-  state: TState;
+  readonly state: TState;
   state$: Observable<TState>;
 }
 
