@@ -18,7 +18,7 @@ export interface StateDefinition<TState, TStateOperations extends StateOperation
 }
 
 export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType> {
-  setActions<TActionDispatchers extends ActionDispatchers<TActionType>>(
+  setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
     actionDispatchers: TActionDispatchers
   ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
 }
@@ -118,15 +118,12 @@ function getHigherStateOperations<TState, TStateOperations extends StateOperatio
   stateSubject: BehaviorSubject<TState>
 ) {
   const toHigherStateOperationEnhancer = toHigherStateOperation(stateSubject);
-  const higherStateOperations = Object.keys(stateOperations).reduce(
-    (currentHigherStateOperations, operationKey) => {
-      return {
-        ...currentHigherStateOperations,
-        [operationKey]: toHigherStateOperationEnhancer(stateOperations[operationKey])
-      };
-    },
-    {} as HigherStateOperations<TState, TStateOperations>
-  );
+  const higherStateOperations = Object.keys(stateOperations).reduce((currentHigherStateOperations, operationKey) => {
+    return {
+      ...currentHigherStateOperations,
+      [operationKey]: toHigherStateOperationEnhancer(stateOperations[operationKey])
+    };
+  }, {} as HigherStateOperations<TState, TStateOperations>);
 
   return higherStateOperations;
 }
@@ -149,7 +146,9 @@ function createStateDefinitionWithStateKeys<TState, TStateOperations extends Sta
   stateKey: string
 ): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType> {
   return {
-    setActions<TActionDispatchers extends ActionDispatchers<TActionType>>(actionDispatchers: TActionDispatchers) {
+    setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
+      actionDispatchers: TActionDispatchers
+    ) {
       return createStateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>(
         defaultState,
         stateOperations,
@@ -240,15 +239,12 @@ function getHigherActionOperations<TActionType, TActionDispatchers extends Actio
   dispatch: Dispatch<TActionType>
 ) {
   const toHigherActionOperationEnhancer = toHigherActionOperation<TActionType>(dispatch);
-  const higherActionOperations = Object.keys(actionDispatchers).reduce(
-    (currentHigherActionOperations, actionKey) => {
-      return {
-        ...currentHigherActionOperations,
-        [actionKey]: toHigherActionOperationEnhancer(actionDispatchers[actionKey])
-      };
-    },
-    {} as HigherActionOperations<TActionType, TActionDispatchers>
-  );
+  const higherActionOperations = Object.keys(actionDispatchers).reduce((currentHigherActionOperations, actionKey) => {
+    return {
+      ...currentHigherActionOperations,
+      [actionKey]: toHigherActionOperationEnhancer(actionDispatchers[actionKey])
+    };
+  }, {} as HigherActionOperations<TActionType, TActionDispatchers>);
 
   return higherActionOperations;
 }
