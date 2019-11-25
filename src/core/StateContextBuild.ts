@@ -23,7 +23,7 @@ export function createStateDefinition<TState = {}>(
   stateKey = "state"
 ): StateDefinition<TState> {
   return {
-    // tslint:disable-next-line: no-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setReducer<TActionType = any>(
       reducer?: DefaultStateReducer<Readonly<TState>, Action<TActionType>>,
       routingOptions?: Map<TActionType, RoutingOption>

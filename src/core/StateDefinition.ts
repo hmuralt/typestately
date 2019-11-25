@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { BehaviorSubject } from "rxjs";
 import { Action } from "redux";
 import RoutingOption from "./RoutingOption";
@@ -6,8 +8,6 @@ import { withDefaultStateToReduxReducer, DefaultStateReducerWithOptionalRoutingO
 import { createStateContext, StateContext } from "./StateContext";
 import { storeContextId } from "./StoreContext";
 import StateProvider from "./StateProvider";
-
-// tslint:disable: no-any
 
 export interface StateDefinition<TState, TStateOperations extends StateOperations<TState>> {
   createStandaloneStateHandler(): StateProvider<TState> & HigherStateOperations<TState, TStateOperations>;

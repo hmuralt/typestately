@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Reducer, Action } from "redux";
 import { of, Observable } from "rxjs";
 import { Hub } from "./Hub";
@@ -7,8 +9,6 @@ import { StateContext } from "./StateContext";
 import { createStateDefinition, StateDefinition } from "./StateContextBuild";
 import DefaultStateReducer from "./DefaultStateReducer";
 import { createExtensibleReducer } from "./ReducerHelpers";
-
-// tslint:disable: no-any
 
 interface ReducerPropertyDescription {
   actionType: any;

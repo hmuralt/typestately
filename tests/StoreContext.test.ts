@@ -27,7 +27,7 @@ const testOtherStoreContextId = "testOtherStoreContextId";
 const testStoreState = {};
 
 describe("StoreContext", () => {
-  // tslint:disable-next-line: no-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockStore: Store<any, AnyAction> & {
     dispatch: jest.Mock;
     getState: jest.Mock;
