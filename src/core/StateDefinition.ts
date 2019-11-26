@@ -18,6 +18,7 @@ export interface StateDefinition<TState, TStateOperations extends StateOperation
 }
 
 export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType> {
+  createStateHandler(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
   setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
     actionDispatchers: TActionDispatchers
   ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
@@ -76,9 +77,9 @@ type ParametersWithoutFirst<T extends (first: any, ...args: any[]) => any> = T e
 
 export const defaultStateKey = "state";
 
-export function createStateDefinition<TState, TStateOperations extends StateOperations<TState>>(
+export function defineState<TState, TStateOperations extends StateOperations<TState>>(
   defaultState: TState,
-  stateOperations: TStateOperations
+  stateOperations: TStateOperations = {} as any
 ): StateDefinition<TState, TStateOperations> {
   return {
     createStandaloneStateHandler() {
@@ -137,6 +138,19 @@ function createStateDefinitionWithStateKeys<TState, TStateOperations extends Sta
   stateKey: string
 ): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType> {
   return {
+    createStateHandler(hub: Hub, parentContextId: string = storeContextId) {
+      const stateContext = createStateContext<TState, TActionType>(
+        {
+          key,
+          stateKey,
+          defaultState,
+          parentContextId
+        },
+        hub
+      );
+
+      return Object.assign(stateContext);
+    },
     setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
       actionDispatchers: TActionDispatchers
     ) {

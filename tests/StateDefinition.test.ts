@@ -1,6 +1,6 @@
 import { skip } from "rxjs/operators";
 import { StateContext, createStateContext } from "../src/core/StateContext";
-import { createStateDefinition, defaultStateKey } from "../src/core/StateDefinition";
+import { defineState, defaultStateKey } from "../src/core/StateDefinition";
 import { createHubMocks } from "./Mocks";
 import { BehaviorSubject } from "rxjs";
 import RoutingOption from "../src/core/RoutingOption";
@@ -53,7 +53,7 @@ describe("StateDefinition", () => {
   describe("createStandaloneStateHandler", () => {
     it("returns state handler", () => {
       // Arrange
-      const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+      const stateDefinition = defineState(testDefaultState, testStateOperations);
 
       // Act
       const standaloneStateHandler = stateDefinition.createStandaloneStateHandler();
@@ -67,7 +67,7 @@ describe("StateDefinition", () => {
     describe("standalone state handler", () => {
       it("returns default state per default", () => {
         // Arrange
-        const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+        const stateDefinition = defineState(testDefaultState, testStateOperations);
 
         // Act
         const standaloneStateHandler = stateDefinition.createStandaloneStateHandler();
@@ -78,7 +78,7 @@ describe("StateDefinition", () => {
 
       it("updates state after state operation call", () => {
         // Arrange
-        const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+        const stateDefinition = defineState(testDefaultState, testStateOperations);
         const standaloneStateHandler = stateDefinition.createStandaloneStateHandler();
         const newTestValue = 2233;
 
@@ -91,7 +91,7 @@ describe("StateDefinition", () => {
 
       it("notifies observer upon subscription", (done) => {
         // Arrange
-        const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+        const stateDefinition = defineState(testDefaultState, testStateOperations);
         const standaloneStateHandler = stateDefinition.createStandaloneStateHandler();
 
         // Act
@@ -104,7 +104,7 @@ describe("StateDefinition", () => {
 
       it("notifies observer on state change", (done) => {
         // Arrange
-        const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+        const stateDefinition = defineState(testDefaultState, testStateOperations);
         const standaloneStateHandler = stateDefinition.createStandaloneStateHandler();
         const newTestValue = 2233;
 
@@ -131,7 +131,7 @@ describe("StateDefinition", () => {
 
     it("returns state handler", () => {
       // Arrange
-      const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+      const stateDefinition = defineState(testDefaultState, testStateOperations);
 
       // Act
       const stateHandler = stateDefinition
@@ -151,7 +151,7 @@ describe("StateDefinition", () => {
 
     it("creates correct state context", () => {
       // Arrange
-      const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+      const stateDefinition = defineState(testDefaultState, testStateOperations);
       const testRoutingOptions = new Map<string, RoutingOption>();
 
       // Act
@@ -178,7 +178,7 @@ describe("StateDefinition", () => {
     describe("state handler", () => {
       it("calls action dispatcher with dispatch and arguments", () => {
         // Arrange
-        const stateDefinition = createStateDefinition(testDefaultState, testStateOperations);
+        const stateDefinition = defineState(testDefaultState, testStateOperations);
         const newTestValue = 123;
         const stateHandler = stateDefinition
           .makeStorableUsing(testStoreKey)
