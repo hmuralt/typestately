@@ -10,15 +10,15 @@ import { storeContextId } from "./StoreContext";
 import StateProvider from "./StateProvider";
 
 export interface StateDefinition<TState, TStateOperations extends StateOperations<TState>> {
-  createStandaloneStateHandler(): StateProvider<TState> & HigherStateOperations<TState, TStateOperations>;
-  makeStorableUsing<TActionType extends any>(
+  createStandaloneStateHandler(): StandaloneStateHandler<TState, TStateOperations>;
+  makeStorableUsingKey<TActionType extends any>(
     key: string,
     stateKey?: string
   ): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType>;
 }
 
 export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType> {
-  createStateHandler(hub: Hub, parentContextId?: string): StateContext<TState, TActionType>;
+  createStateHandler(hub: Hub, parentContextId?: string): StateHandler<TState, TActionType>;
   setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
     actionDispatchers: TActionDispatchers
   ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
@@ -40,7 +40,7 @@ export interface StoreStateDefinition<TState, TActionType, TActionDispatchers ex
   createStateHandler(
     hub: Hub,
     parentContextId?: string
-  ): StateContext<TState, TActionType> & HigherActionOperations<TActionType, TActionDispatchers>;
+  ): StateHandler<TState, TActionType> & HigherActionOperations<TActionType, TActionDispatchers>;
 }
 
 export interface StateOperations<TState> {
@@ -75,6 +75,14 @@ type ParametersWithoutFirst<T extends (first: any, ...args: any[]) => any> = T e
   ? P
   : never;
 
+export type StandaloneStateHandler<TState, TStateOperations extends StateOperations<TState>> = StateProvider<TState> &
+  HigherStateOperations<TState, TStateOperations>;
+
+export type StateHandler<TState, TActionType> = Pick<
+  StateContext<TState, TActionType>,
+  Exclude<keyof StateContext<TState, TActionType>, "id">
+> & { stateContextId: string };
+
 export const defaultStateKey = "state";
 
 export function defineState<TState, TStateOperations extends StateOperations<TState>>(
@@ -94,7 +102,7 @@ export function defineState<TState, TStateOperations extends StateOperations<TSt
 
       return Object.assign(standaloneStateContext, operations);
     },
-    makeStorableUsing<TActionType extends any>(key: string, stateKey: string = defaultStateKey) {
+    makeStorableUsingKey<TActionType extends any>(key: string, stateKey: string = defaultStateKey) {
       return createStateDefinitionWithStateKeys<TState, TStateOperations, TActionType>(
         defaultState,
         stateOperations,
@@ -149,7 +157,7 @@ function createStateDefinitionWithStateKeys<TState, TStateOperations extends Sta
         hub
       );
 
-      return Object.assign(stateContext);
+      return Object.assign(stateContext, { stateContextId: stateContext.id });
     },
     setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
       actionDispatchers: TActionDispatchers
@@ -234,7 +242,7 @@ function createStateDefinitionWithReducer<
         stateContext.dispatch
       );
 
-      return Object.assign(stateContext, operations);
+      return Object.assign(stateContext, { stateContextId: stateContext.id }, operations);
     }
   };
 }

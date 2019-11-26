@@ -135,13 +135,13 @@ describe("StateDefinition", () => {
 
       // Act
       const stateHandler = stateDefinition
-        .makeStorableUsing(testStoreKey)
+        .makeStorableUsingKey(testStoreKey)
         .setActionDispatchers({ update: testAction })
         .setReducer(testReducerBuilder)
         .createStateHandler(mockHub);
 
       // Assert
-      expect(stateHandler.id).toBeDefined();
+      expect(stateHandler.stateContextId).toBeDefined();
       expect(stateHandler.state).toBeDefined();
       expect(stateHandler.state$).toBeDefined();
       expect(stateHandler.update).toBeDefined();
@@ -156,7 +156,7 @@ describe("StateDefinition", () => {
 
       // Act
       stateDefinition
-        .makeStorableUsing(testStoreKey)
+        .makeStorableUsingKey(testStoreKey)
         .setActionDispatchers({ update: testAction })
         .setReducer(testReducerBuilder, testRoutingOptions)
         .createStateHandler(mockHub);
@@ -181,7 +181,7 @@ describe("StateDefinition", () => {
         const stateDefinition = defineState(testDefaultState, testStateOperations);
         const newTestValue = 123;
         const stateHandler = stateDefinition
-          .makeStorableUsing(testStoreKey)
+          .makeStorableUsingKey(testStoreKey)
           .setActionDispatchers({ update: testAction })
           .setReducer(testReducerBuilder)
           .createStateHandler(mockHub);
