@@ -15,12 +15,12 @@ export interface StateContext<TState, TActionType> extends StateProvider<TState>
   dispatch<TAction extends Action<TActionType>>(action: TAction, isRoutedToThisContext?: boolean): void;
 }
 
-export interface StateBuildingBlock<TState, TActionType> {
+export interface StateBuildingBlock<TState, TReducerActionType> {
   key: string;
   stateKey: string;
   defaultState: TState;
-  reducer?: Reducer<Readonly<TState>, Action<TActionType>>;
-  routingOptions?: Map<TActionType, RoutingOption>;
+  reducer?: Reducer<Readonly<TState>, Action<TReducerActionType>>;
+  routingOptions?: Map<TReducerActionType, RoutingOption>;
   parentContextId: string;
 }
 
@@ -30,12 +30,12 @@ interface BaseObservables {
   isDestroyed$: Observable<boolean>;
 }
 
-export function createStateContext<TState, TActionType>(
-  stateBuildingBlock: StateBuildingBlock<TState, TActionType>,
+export function createStateContext<TState, TActionType, TReducerActionType>(
+  stateBuildingBlock: StateBuildingBlock<TState, TReducerActionType>,
   hub: Hub
 ): StateContext<TState, TActionType> {
   const id = `${stateBuildingBlock.parentContextId}.${stateBuildingBlock.key}`;
-  const setupFuntions = getScopedSetupFunctions(stateBuildingBlock, hub);
+  const setupFuntions = getScopedSetupFunctions<TState, TActionType, TReducerActionType>(stateBuildingBlock, hub);
 
   const destroy = setupFuntions.createDestroy(id);
   const dispatch = setupFuntions.createDispatch(id);
@@ -59,8 +59,8 @@ export function createStateContext<TState, TActionType>(
   };
 }
 
-function getScopedSetupFunctions<TState, TActionType>(
-  stateBuildingBlock: StateBuildingBlock<TState, TActionType>,
+function getScopedSetupFunctions<TState, TActionType, TReducerActionType>(
+  stateBuildingBlock: StateBuildingBlock<TState, TReducerActionType>,
   hub: Hub
 ) {
   const { key, defaultState, stateKey, parentContextId, reducer, routingOptions } = stateBuildingBlock;

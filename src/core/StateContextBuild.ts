@@ -34,7 +34,7 @@ export function createStateDefinition<TState = {}>(
 
       return {
         attachTo(hub: Hub, parentContextId: string = storeContextId) {
-          return createStateContext(
+          return createStateContext<TState, TActionType, TActionType>(
             {
               key,
               defaultState,
