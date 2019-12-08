@@ -1,55 +1,69 @@
+import { BehaviorSubject } from "rxjs";
+import { DefaultStateReducerWithOptionalRoutingOptions, withDefaultStateToReduxReducer } from "./ReducerHelpers";
+import RoutingOption from "./RoutingOption";
+import { storeContextId } from "./StoreContext";
+import { Hub } from "./Hub";
+import { Action } from "redux";
+import { createStateContext } from "./StateContext";
+import StateProvider from "./StateProvider";
+import { Destructible } from "./Destructible";
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { BehaviorSubject } from "rxjs";
-import { Action } from "redux";
-import RoutingOption from "./RoutingOption";
-import { Hub } from "./Hub";
-import { withDefaultStateToReduxReducer, DefaultStateReducerWithOptionalRoutingOptions } from "./ReducerHelpers";
-import { createStateContext, StateContext } from "./StateContext";
-import { storeContextId } from "./StoreContext";
-import StateProvider from "./StateProvider";
+type ParametersWithoutFirst<T extends (first: any, ...args: any[]) => any> = T extends (
+  first: any,
+  ...args: infer P
+) => any
+  ? P
+  : never;
 
-export interface StateDefinition<TState, TStateOperations extends StateOperations<TState>> {
-  createStandaloneStateHandler(): StandaloneStateHandler<TState, TStateOperations>;
-  makeStorableUsingKey<TActionType extends any>(
-    key: string,
-    stateKey?: string
-  ): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType>;
-}
-
-export interface StateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType> {
-  createStateHandler(hub: Hub, parentContextId?: string): StateHandler<TState, TActionType>;
-  setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
-    actionDispatchers: TActionDispatchers
-  ): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>;
-}
-
-export interface StateDefinitionWithActions<
+interface StateHandlerBuildingBlock<
   TState,
   TStateOperations extends StateOperations<TState>,
   TActionType,
-  TActionDispatchers extends ActionDispatchers<TActionType>
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
 > {
-  setReducer<TReducerActionType>(
-    reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
-    routingOptions?: Map<TReducerActionType, RoutingOption>
-  ): StoreStateDefinition<TState, TActionType, TActionDispatchers>;
+  defaultState: TState;
+  stateOperations: TStateOperations;
+  key: string;
+  stateKey: string;
+  actionDispatchers: TActionDispatchers;
+  reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>;
+  routingOptions?: Map<TReducerActionType, RoutingOption>;
 }
 
-export interface StoreStateDefinition<TState, TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> {
-  createStateHandler(
-    hub: Hub,
-    parentContextId?: string
-  ): StateHandler<TState, TActionType> & HigherActionOperations<TActionType, TActionDispatchers>;
-}
+type StateHandlerCreator<TState, TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = (
+  hub: Hub,
+  parentContextId?: string
+) => StateHandler<TState, TActionType, TActionDispatchers>;
+
+export type StateHandler<
+  TState,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>
+> = StateProvider<TState> &
+  Destructible &
+  HigherActionOperations<TActionType, TActionDispatchers> & {
+    stateContextId: string;
+    dispatch<TAction extends Action<TActionType>>(action: TAction, isRoutedToThisContext?: boolean): void;
+  };
 
 export interface StateOperations<TState> {
   [operationKey: string]: (state: TState, ...args: any[]) => TState;
 }
 
+export type HigherStateOperations<TState, TStateOperations extends StateOperations<TState>> = {
+  [OperationKey in keyof TStateOperations]: (...args: ParametersWithoutFirst<TStateOperations[OperationKey]>) => void;
+};
+
 export interface ActionDispatchers<TActionType> {
   [OperationKey: string]: (dispatch: Dispatch<TActionType>, ...args: any[]) => void;
 }
+
+export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
+  [ActionKey in keyof TActionDispatchers]: (...args: ParametersWithoutFirst<TActionDispatchers[ActionKey]>) => void;
+};
 
 export type Dispatch<TActionType> = <TAction extends Action<TActionType>>(
   action: TAction,
@@ -60,58 +74,7 @@ export type ReducerBuilder<TState, TStateOperations extends StateOperations<TSta
   stateOperations: TStateOperations
 ) => DefaultStateReducerWithOptionalRoutingOptions<TState, TActionType>;
 
-export type HigherStateOperations<TState, TStateOperations extends StateOperations<TState>> = {
-  [OperationKey in keyof TStateOperations]: (...args: ParametersWithoutFirst<TStateOperations[OperationKey]>) => void;
-};
-
-export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
-  [ActionKey in keyof TActionDispatchers]: (...args: ParametersWithoutFirst<TActionDispatchers[ActionKey]>) => void;
-};
-
-type ParametersWithoutFirst<T extends (first: any, ...args: any[]) => any> = T extends (
-  first: any,
-  ...args: infer P
-) => any
-  ? P
-  : never;
-
-export type StandaloneStateHandler<TState, TStateOperations extends StateOperations<TState>> = StateProvider<TState> &
-  HigherStateOperations<TState, TStateOperations>;
-
-export type StateHandler<TState, TActionType> = Pick<
-  StateContext<TState, TActionType>,
-  Exclude<keyof StateContext<TState, TActionType>, "id">
-> & { stateContextId: string };
-
 export const defaultStateKey = "state";
-
-export function defineState<TState, TStateOperations extends StateOperations<TState>>(
-  defaultState: TState,
-  stateOperations: TStateOperations = {} as any
-): StateDefinition<TState, TStateOperations> {
-  return {
-    createStandaloneStateHandler() {
-      const stateSubject = new BehaviorSubject(defaultState);
-      const operations = getHigherStateOperations(stateOperations, stateSubject);
-      const standaloneStateContext = {
-        get state() {
-          return stateSubject.value;
-        },
-        state$: stateSubject.asObservable()
-      };
-
-      return Object.assign(standaloneStateContext, operations);
-    },
-    makeStorableUsingKey<TActionType extends any>(key: string, stateKey: string = defaultStateKey) {
-      return createStateDefinitionWithStateKeys<TState, TStateOperations, TActionType>(
-        defaultState,
-        stateOperations,
-        key,
-        stateKey
-      );
-    }
-  };
-}
 
 function getHigherStateOperations<TState, TStateOperations extends StateOperations<TState>>(
   stateOperations: TStateOperations,
@@ -139,115 +102,6 @@ function toHigherStateOperation<TState>(stateSubject: BehaviorSubject<TState>) {
   };
 }
 
-function createStateDefinitionWithStateKeys<TState, TStateOperations extends StateOperations<TState>, TActionType>(
-  defaultState: TState,
-  stateOperations: TStateOperations,
-  key: string,
-  stateKey: string
-): StateDefinitionWithStateKeys<TState, TStateOperations, TActionType> {
-  return {
-    createStateHandler(hub: Hub, parentContextId: string = storeContextId) {
-      const stateContext = createStateContext<TState, TActionType, any>(
-        {
-          key,
-          stateKey,
-          defaultState,
-          parentContextId
-        },
-        hub
-      );
-
-      return Object.assign(stateContext, { stateContextId: stateContext.id });
-    },
-    setActionDispatchers<TActionDispatchers extends ActionDispatchers<TActionType>>(
-      actionDispatchers: TActionDispatchers
-    ) {
-      return createStateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers>(
-        defaultState,
-        stateOperations,
-        key,
-        stateKey,
-        actionDispatchers
-      );
-    }
-  };
-}
-
-function createStateDefinitionWithActions<
-  TState,
-  TStateOperations extends StateOperations<TState>,
-  TActionType,
-  TActionDispatchers extends ActionDispatchers<TActionType>
->(
-  defaultState: TState,
-  stateOperations: TStateOperations,
-  key: string,
-  stateKey: string,
-  actionDispatchers: TActionDispatchers
-): StateDefinitionWithActions<TState, TStateOperations, TActionType, TActionDispatchers> {
-  return {
-    setReducer<TReducerActionType>(
-      reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
-      routingOptions?: Map<TReducerActionType, RoutingOption>
-    ) {
-      return createStateDefinitionWithReducer<
-        TState,
-        TStateOperations,
-        TActionType,
-        TActionDispatchers,
-        TReducerActionType
-      >(defaultState, stateOperations, key, stateKey, actionDispatchers, reducerBuilder, routingOptions);
-    }
-  };
-}
-
-function createStateDefinitionWithReducer<
-  TState,
-  TStateOperations extends StateOperations<TState>,
-  TActionType,
-  TActionDispatchers extends ActionDispatchers<TActionType>,
-  TReducerActionType
->(
-  defaultState: TState,
-  stateOperations: TStateOperations,
-  key: string,
-  stateKey: string,
-  actionDispatchers: TActionDispatchers,
-  reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
-  routingOptions?: Map<TReducerActionType, RoutingOption>
-): StoreStateDefinition<TState, TActionType, TActionDispatchers> {
-  return {
-    createStateHandler(hub: Hub, parentContextId: string = storeContextId) {
-      const reducer = reducerBuilder !== undefined ? reducerBuilder(stateOperations) : undefined;
-      const defaultStateReducer =
-        reducer !== undefined
-          ? withDefaultStateToReduxReducer<TState, TReducerActionType>(defaultState, reducer)
-          : undefined;
-      const defaultRoutingOptions =
-        routingOptions || (reducer && reducer.routingOptions) || new Map<TReducerActionType, RoutingOption>();
-
-      const stateContext = createStateContext<TState, TActionType, TReducerActionType>(
-        {
-          key,
-          stateKey,
-          defaultState,
-          reducer: defaultStateReducer,
-          routingOptions: defaultRoutingOptions,
-          parentContextId
-        },
-        hub
-      );
-
-      const operations = getHigherActionOperations<TActionType, TActionDispatchers>(
-        actionDispatchers,
-        stateContext.dispatch
-      );
-
-      return Object.assign(stateContext, { stateContextId: stateContext.id }, operations);
-    }
-  };
-}
-
 function getHigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>>(
   actionDispatchers: TActionDispatchers,
   dispatch: Dispatch<TActionType>
@@ -270,5 +124,135 @@ function toHigherActionOperation<TActionType>(dispatch: Dispatch<TActionType>) {
     };
 
     return higherActionOperation;
+  };
+}
+
+export function defineState<TState, TStateOperations extends StateOperations<TState>>(
+  defaultState: TState,
+  stateOperations: TStateOperations = {} as any
+) {
+  return {
+    createStandaloneStateHandler() {
+      const stateSubject = new BehaviorSubject(defaultState);
+      const operations = getHigherStateOperations(stateOperations, stateSubject);
+      const standaloneStateContext = {
+        get state() {
+          return stateSubject.value;
+        },
+        state$: stateSubject.asObservable()
+      };
+
+      return Object.assign(standaloneStateContext, operations);
+    },
+    makeStorableUsingKey(key: string, stateKey: string = defaultStateKey) {
+      return createStoreStateDefinition({
+        defaultState,
+        stateOperations,
+        key,
+        stateKey,
+        actionDispatchers: {}
+      });
+    }
+  };
+}
+
+function createStoreStateDefinition<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
+>(
+  stateHandlerBuildingBlock: StateHandlerBuildingBlock<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >
+) {
+  const createStateHandler = getStateHandlerCreator<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >(stateHandlerBuildingBlock);
+
+  return {
+    createStateHandler,
+    setActionDispatchers<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>>(
+      actionDispatchers: TActionDispatchers
+    ) {
+      return createStoreStateDefinition<TState, TStateOperations, TActionType, TActionDispatchers, TReducerActionType>({
+        ...stateHandlerBuildingBlock,
+        actionDispatchers
+      });
+    },
+    setReducer<TReducerActionType>(
+      reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
+      routingOptions?: Map<TReducerActionType, RoutingOption>
+    ) {
+      return createStoreStateDefinition<TState, TStateOperations, TActionType, TActionDispatchers, TReducerActionType>({
+        ...stateHandlerBuildingBlock,
+        reducerBuilder,
+        routingOptions
+      });
+    }
+  };
+}
+
+function getStateHandlerCreator<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
+>(
+  stateHandlerBuildingBlock: StateHandlerBuildingBlock<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >
+): StateHandlerCreator<TState, TActionType, TActionDispatchers> {
+  return (hub: Hub, parentContextId: string = storeContextId) => {
+    const {
+      defaultState,
+      stateOperations,
+      key,
+      stateKey,
+      actionDispatchers,
+      reducerBuilder,
+      routingOptions
+    } = stateHandlerBuildingBlock;
+
+    const reducer = reducerBuilder !== undefined ? reducerBuilder(stateOperations) : undefined;
+    const defaultStateReducer =
+      reducer !== undefined
+        ? withDefaultStateToReduxReducer<TState, TReducerActionType>(defaultState, reducer)
+        : undefined;
+    const defaultRoutingOptions =
+      routingOptions || (reducer && reducer.routingOptions) || new Map<TReducerActionType, RoutingOption>();
+
+    const stateContext = createStateContext<TState, TActionType, TReducerActionType>(
+      {
+        key,
+        stateKey,
+        defaultState,
+        reducer: defaultStateReducer,
+        routingOptions: defaultRoutingOptions,
+        parentContextId
+      },
+      hub
+    );
+
+    const operations = getHigherActionOperations<TActionType, TActionDispatchers>(
+      actionDispatchers,
+      stateContext.dispatch
+    );
+
+    return Object.assign(stateContext, { stateContextId: stateContext.id }, operations);
   };
 }
