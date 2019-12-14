@@ -141,7 +141,7 @@ describe("StateDefinition", () => {
         .createStateHandler(mockHub);
 
       // Assert
-      expect(stateHandler.stateContextId).toBeDefined();
+      expect(stateHandler.contextId).toBeDefined();
       expect(stateHandler.state).toBeDefined();
       expect(stateHandler.state$).toBeDefined();
       expect(stateHandler.update).toBeDefined();

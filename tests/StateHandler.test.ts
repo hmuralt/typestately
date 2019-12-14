@@ -26,7 +26,7 @@ describe("StateHandler", () => {
     const testState = {};
 
     testStateContext = {
-      id: "testStateContextId",
+      id: "testContextId",
       state: testState,
       state$: of(testState),
       dispatch: jest.fn(),
