@@ -42,3 +42,15 @@ export function combine(...stateProviders: Array<StateProvider<{}>>) {
     state$: combineLatest(stateProviders.map((stateProvider) => stateProvider.state$))
   };
 }
+
+export function withStateProvider<TState>(stateProvider: StateProvider<TState>) {
+  return <TTarget extends {}>(target: TTarget) => {
+    return {
+      ...target,
+      get state() {
+        return stateProvider.state;
+      },
+      state$: stateProvider.state$
+    } as TTarget & StateProvider<TState>;
+  };
+}
