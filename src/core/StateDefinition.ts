@@ -36,16 +36,16 @@ interface StateHandlerBuildingBlock<
 type StateHandlerCreator<TState, TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = (
   hub: Hub,
   parentContextId?: string
-) => StateHandler<TState, TActionType, TActionDispatchers>;
+) => PlainStateHandler<TState, TActionType, TActionDispatchers>;
 
-export type StateHandler<
+export type PlainStateHandler<
   TState,
   TActionType,
   TActionDispatchers extends ActionDispatchers<TActionType>
 > = StateProvider<TState> &
   Destructible &
   HigherActionOperations<TActionType, TActionDispatchers> & {
-    stateContextId: string;
+    contextId: string;
     dispatch<TAction extends Action<TActionType>>(action: TAction, isRoutedToThisContext?: boolean): void;
   };
 
@@ -58,11 +58,13 @@ export type HigherStateOperations<TState, TStateOperations extends StateOperatio
 };
 
 export interface ActionDispatchers<TActionType> {
-  [OperationKey: string]: (dispatch: Dispatch<TActionType>, ...args: any[]) => void;
+  [OperationKey: string]: (dispatch: Dispatch<TActionType>, ...args: any[]) => any;
 }
 
 export type HigherActionOperations<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>> = {
-  [ActionKey in keyof TActionDispatchers]: (...args: ParametersWithoutFirst<TActionDispatchers[ActionKey]>) => void;
+  [ActionKey in keyof TActionDispatchers]: (
+    ...args: ParametersWithoutFirst<TActionDispatchers[ActionKey]>
+  ) => ReturnType<TActionDispatchers[ActionKey]>;
 };
 
 export type Dispatch<TActionType> = <TAction extends Action<TActionType>>(
@@ -118,9 +120,11 @@ function getHigherActionOperations<TActionType, TActionDispatchers extends Actio
 }
 
 function toHigherActionOperation<TActionType>(dispatch: Dispatch<TActionType>) {
-  return <TArgs extends any[]>(actionDispatcher: (dispatch: Dispatch<TActionType>, ...args: TArgs) => void) => {
+  return <TArgs extends any[], TReturnType>(
+    actionDispatcher: (dispatch: Dispatch<TActionType>, ...args: TArgs) => TReturnType
+  ) => {
     const higherActionOperation = (...args: TArgs) => {
-      actionDispatcher(dispatch, ...args);
+      return actionDispatcher(dispatch, ...args);
     };
 
     return higherActionOperation;
@@ -253,6 +257,6 @@ function getStateHandlerCreator<
       stateContext.dispatch
     );
 
-    return Object.assign(stateContext, { stateContextId: stateContext.id }, operations);
+    return Object.assign(stateContext, { contextId: stateContext.id }, operations);
   };
 }
