@@ -18,7 +18,7 @@ Recomposed approach of using redux with TypeScript. An idea showing how you can 
 
 A complete example can be found here: https://github.com/hmuralt/typestately-example
 
-It shows the usage with state handlers (class) and an alternative usage with state contexts (objects & functions).
+It shows the usage with state handlers (class) and an alternative usage with plain objects & functions.
 
 ### Store
 
@@ -49,7 +49,7 @@ export function setupMainStoreContext() {
 }
 ```
 
-### Counter example
+### Counter example with state handler classes
 
 #### State
 
@@ -72,8 +72,6 @@ export const defaultState: State = {
 _CounterActions.ts_
 
 ```tsx
-import { Action } from "redux";
-
 export enum ActionType {
   Increment = "INCREMENT",
   Decrement = "DECREMENT"
@@ -90,12 +88,6 @@ export interface ChangeAction extends Action<ActionType> {
 _CounterStateHandler.ts_
 
 ```tsx
-import { StateHandler } from "typestately";
-import Status from "components/Loader/State/Status";
-import LoaderStateHandler from "components/Loader/State/LoaderStateHandler";
-import { ChangeAction, ActionType } from "./CounterActions";
-import State, { defaultState } from "./CounterState";
-
 class CounterStateHandler extends StateHandler<State, ActionType> {
   @StateHandler.nested
   public readonly loaderStateHandler: LoaderStateHandler;
@@ -155,8 +147,6 @@ export default counterStateHandler;
 _Counter.tsx_
 
 ```tsx
-import * as React from "react";
-
 export interface Props {
   value: number;
   clicked: Date;
@@ -224,4 +214,124 @@ export default withStateToProps(
     };
   }
 )(Counter);
+```
+
+### Counter example with state handler functions (alternative to classes)
+
+#### State
+
+```tsx
+export default interface CounterState {
+  value: number;
+  clicked: Date;
+}
+
+export const defaultCounterState: CounterState = {
+  value: 0,
+  clicked: new Date()
+};
+```
+
+#### Actions
+
+_CounterActions.ts_
+
+```tsx
+export enum ActionType {
+  Increment = "INCREMENT",
+  Decrement = "DECREMENT"
+}
+
+export interface ChangeAction extends Action<ActionType> {
+  type: ActionType;
+  clicked: Date;
+}
+```
+
+#### Reducer
+
+```tsx
+function increment(state: CounterState, action: ChangeAction) {
+  return {
+    value: state.value + 1,
+    clicked: action.clicked
+  };
+}
+
+function decrement(state: CounterState, action: ChangeAction) {
+  return {
+    value: state.value - 1,
+    clicked: action.clicked
+  };
+}
+
+const counterReducer = createExtensibleReducer<CounterState, ActionType>()
+  .handling(ActionType.Increment, increment)
+  .handling(ActionType.Decrement, decrement);
+
+export default counterReducer;
+```
+
+#### State handler
+
+```tsx
+const counterStateDefinition = defineState(defaultCounterState)
+  .makeStorableUsingKey("counter")
+  .setReducer(() => counterReducer)
+  .setActionDispatchers({
+    increment(dispatch: Dispatch<ActionType>, clicked: Date) {
+      dispatch<ChangeAction>({
+        type: ActionType.Increment,
+        clicked
+      });
+    },
+    decrement(dispatch: Dispatch<ActionType>, clicked: Date) {
+      dispatch<ChangeAction>({
+        type: ActionType.Decrement,
+        clicked
+      });
+    }
+  });
+
+export function createCounterStateHandler(hub: Hub) {
+  const counterStateHandler = counterStateDefinition.createStateHandler(hub);
+  const loaderStateHandler = createLoaderStateHandler(hub, counterStateHandler.contextId);
+  const extensions = {
+    incrementAsync(clicked: Date) {
+      loaderStateHandler.setStatus(Status.Updating);
+
+      window.setTimeout(() => {
+        counterStateHandler.increment(clicked);
+
+        loaderStateHandler.setStatus(Status.Done);
+      }, 2000);
+    }
+  };
+
+  return Object.assign(counterStateHandler, extensions, {
+    loaderStateProvider: withStateProvider(loaderStateHandler)({})
+  });
+}
+```
+
+#### Container
+
+```tsx
+const CounterContainer: React.FC = () => {
+  const counterStateHandler = React.useMemo(() => createCounterStateHandler(storeContexts.FunctionsExample.hub), []);
+  const counterState = useStateProvider(counterStateHandler);
+  const configurationState = useStateProvider(useContext(configurationStateHandlerContext));
+
+  return (
+    <Counter
+      value={counterState.value}
+      clicked={counterState.clicked}
+      min={configurationState.minCount}
+      max={configurationState.maxCount}
+      onIncrement={counterStateHandler.increment}
+      onIncrementAsync={counterStateHandler.incrementAsync}
+      onDecrement={counterStateHandler.decrement}
+    />
+  );
+};
 ```
