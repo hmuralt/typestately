@@ -320,14 +320,11 @@ export function createCounterStateHandler(hub: Hub) {
 const CounterContainer: React.FC = () => {
   const counterStateHandler = React.useMemo(() => createCounterStateHandler(storeContexts.FunctionsExample.hub), []);
   const counterState = useStateProvider(counterStateHandler);
-  const configurationState = useStateProvider(useContext(configurationStateHandlerContext));
 
   return (
     <Counter
       value={counterState.value}
       clicked={counterState.clicked}
-      min={configurationState.minCount}
-      max={configurationState.maxCount}
       onIncrement={counterStateHandler.increment}
       onIncrementAsync={counterStateHandler.incrementAsync}
       onDecrement={counterStateHandler.decrement}
