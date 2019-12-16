@@ -18,7 +18,7 @@ Recomposed approach of using redux with TypeScript. An idea showing how you can 
 
 A complete example can be found here: https://github.com/hmuralt/typestately-example
 
-It shows the usage with state handlers (class) and an alternative usage with plain objects & functions.
+It shows the usage with state handlers implemented as classes and an alternative usage with plain objects & functions.
 
 ### Store
 
@@ -331,4 +331,48 @@ const CounterContainer: React.FC = () => {
     />
   );
 };
+```
+
+### State without using redux
+
+You can also create a standalone state handler which isn't attached to the redux store and has it's own standalone state.
+
+```tsx
+interface CounterState {
+  value: number;
+  clicked: Date;
+}
+
+const defaultCounterState: CounterState = {
+  value: 0,
+  clicked: new Date()
+};
+
+function increment(state: CounterState, clicked: Date) {
+  return {
+    value: state.value + 1,
+    clicked
+  };
+}
+
+function decrement(state: CounterState, clicked: Date) {
+  return {
+    value: state.value - 1,
+    clicked
+  };
+}
+
+const counterStateDefinition = defineState(defaultCounterState, { increment, decrement });
+
+const counterStateHandler = counterStateDefinition.createStandaloneStateHandler();
+counterStateHandler.increment(new Date());
+```
+
+And, you can extend the existing an state definition with Redux if needed.
+
+```tsx
+counterStateDefinition
+  .makeStorableUsingKey("counter")
+  .setReducer((stateOperations) => ...) // stateOperations = { increment, decrement } object from defineState call.
+  ...
 ```
