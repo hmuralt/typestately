@@ -1,6 +1,6 @@
 {
   "name": "typestately",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "Recomposed approach of using redux with TypeScript",
   "main": "index.js",
   "repository": {
