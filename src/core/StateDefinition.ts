@@ -188,7 +188,13 @@ function createStoreStateDefinition<
     setActionDispatchers<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>>(
       actionDispatchers: TActionDispatchers
     ) {
-      return createStoreStateDefinition<TState, TStateOperations, TActionType, TActionDispatchers, TReducerActionType>({
+      return createStoreStateDefinitionWithActionDispatchers<
+        TState,
+        TStateOperations,
+        TActionType,
+        TActionDispatchers,
+        TReducerActionType
+      >({
         ...stateHandlerBuildingBlock,
         actionDispatchers
       });
@@ -197,12 +203,132 @@ function createStoreStateDefinition<
       reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
       routingOptions?: Map<TReducerActionType, RoutingOption>
     ) {
-      return createStoreStateDefinition<TState, TStateOperations, TActionType, TActionDispatchers, TReducerActionType>({
+      return createStoreStateDefinitionWithReducer<
+        TState,
+        TStateOperations,
+        TActionType,
+        TActionDispatchers,
+        TReducerActionType
+      >({
         ...stateHandlerBuildingBlock,
         reducerBuilder,
         routingOptions
       });
     }
+  };
+}
+
+function createStoreStateDefinitionWithActionDispatchers<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
+>(
+  stateHandlerBuildingBlock: StateHandlerBuildingBlock<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >
+) {
+  const createStateHandler = getStateHandlerCreator<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >(stateHandlerBuildingBlock);
+
+  return {
+    createStateHandler,
+    setReducer<TReducerActionType>(
+      reducerBuilder?: ReducerBuilder<TState, TStateOperations, TReducerActionType>,
+      routingOptions?: Map<TReducerActionType, RoutingOption>
+    ) {
+      return createStoreStateDefinitionWithActionDispatchersAndReducer<
+        TState,
+        TStateOperations,
+        TActionType,
+        TActionDispatchers,
+        TReducerActionType
+      >({
+        ...stateHandlerBuildingBlock,
+        reducerBuilder,
+        routingOptions
+      });
+    }
+  };
+}
+
+function createStoreStateDefinitionWithReducer<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
+>(
+  stateHandlerBuildingBlock: StateHandlerBuildingBlock<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >
+) {
+  const createStateHandler = getStateHandlerCreator<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >(stateHandlerBuildingBlock);
+
+  return {
+    createStateHandler,
+    setActionDispatchers<TActionType, TActionDispatchers extends ActionDispatchers<TActionType>>(
+      actionDispatchers: TActionDispatchers
+    ) {
+      return createStoreStateDefinitionWithActionDispatchersAndReducer<
+        TState,
+        TStateOperations,
+        TActionType,
+        TActionDispatchers,
+        TReducerActionType
+      >({
+        ...stateHandlerBuildingBlock,
+        actionDispatchers
+      });
+    }
+  };
+}
+
+function createStoreStateDefinitionWithActionDispatchersAndReducer<
+  TState,
+  TStateOperations extends StateOperations<TState>,
+  TActionType,
+  TActionDispatchers extends ActionDispatchers<TActionType>,
+  TReducerActionType
+>(
+  stateHandlerBuildingBlock: StateHandlerBuildingBlock<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >
+) {
+  const createStateHandler = getStateHandlerCreator<
+    TState,
+    TStateOperations,
+    TActionType,
+    TActionDispatchers,
+    TReducerActionType
+  >(stateHandlerBuildingBlock);
+
+  return {
+    createStateHandler
   };
 }
 
